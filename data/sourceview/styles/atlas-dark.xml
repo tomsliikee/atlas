@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Insights Mono for code: weight and grey instead of colour. -->
+<style-scheme id="atlas-dark" name="Atlas Dark" version="1.0">
+  <style name="text" foreground="#f5f5f7" background="#161618"/>
+  <style name="selection" background="#26262a"/>
+  <style name="cursor" foreground="#f5f5f7"/>
+  <style name="current-line" background="#161618"/>
+  <style name="def:keyword" foreground="#f5f5f7" bold="true"/>
+  <style name="def:function" foreground="#f5f5f7"/>
+  <style name="def:string" foreground="#a1a1a6"/>
+  <style name="def:number" foreground="#a1a1a6"/>
+  <style name="def:identifier" foreground="#f5f5f7"/>
+  <style name="def:comment" foreground="#636366"/>
+  <style name="bracket-match" background="#26262a" bold="true"/>
+</style-scheme>

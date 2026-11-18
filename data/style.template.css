@@ -1,0 +1,316 @@
+/* Rules of Atlas. Values come only from var(--im-…); see docs/DESIGN.md.
+   Durations follow atlas/src/motion.rs: 120 ms hover, 200 ms state. */
+
+window.atlas {
+  font-family: Inter, sans-serif;
+}
+
+/* Tabular figures only where numbers stand in columns. */
+.count,
+.cell,
+.zoom-label {
+  font-feature-settings: "tnum";
+}
+
+.mono,
+.cell.mono,
+.detail-value,
+textview.console {
+  font-family: "Geist Mono", monospace;
+}
+
+/* A statement: the one sentence that says where you are. Geist Serif is
+   used for statements only, never for controls or data. */
+.statement {
+  font-family: "Geist Serif", serif;
+  font-size: 32px;
+  letter-spacing: -0.64px;
+  color: var(--im-ink);
+}
+
+.statement-small {
+  font-family: "Geist Serif", serif;
+  font-size: 22px;
+  letter-spacing: -0.26px;
+  color: var(--im-ink);
+}
+
+.hint {
+  font-size: 15px;
+  color: var(--im-ink2);
+}
+
+/* The one solid button of a view, and its quiet neighbour. */
+button.solid,
+button.quiet {
+  min-height: 44px;
+  padding: 0 22px;
+  border-radius: var(--im-radius-pill);
+  transition: background 120ms ease-out, opacity 120ms ease-out;
+}
+
+button.solid {
+  background: var(--im-solid);
+  color: var(--im-on-solid);
+  font-weight: 600;
+}
+
+button.solid:hover {
+  background: color-mix(in srgb, var(--im-solid) 86%, var(--im-bg));
+}
+
+button.quiet {
+  background: var(--im-fill);
+  color: var(--im-ink);
+  font-weight: 500;
+}
+
+button.quiet:hover {
+  background: color-mix(in srgb, var(--im-fill) 80%, var(--im-ink3));
+}
+
+button.solid.small,
+button.quiet.small {
+  min-height: 32px;
+  padding: 0 16px;
+}
+
+button.solid:disabled,
+button.quiet:disabled {
+  opacity: 0.4;
+}
+
+/* Start page. */
+.group-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--im-ink2);
+}
+
+list.recent {
+  background: var(--im-card);
+  border-radius: var(--im-radius-segmented);
+  box-shadow: none;
+}
+
+list.recent > row {
+  border-bottom: none;
+}
+
+.kind {
+  font-size: 12px;
+  color: var(--im-ink3);
+}
+
+/* Sidebar. */
+.sidebar {
+  background: var(--im-bg);
+  border-right: 1px solid var(--im-line);
+}
+
+.sidebar-filter {
+  margin: 10px 10px 4px 10px;
+}
+
+list.tables > row {
+  border-radius: 8px;
+  padding: 6px 10px;
+  min-height: 0;
+  transition: background 120ms ease-out;
+}
+
+list.tables > row:selected {
+  background: var(--im-fill);
+  color: var(--im-ink);
+  font-weight: 600;
+}
+
+.count {
+  font-size: 12px;
+  color: var(--im-ink3);
+  font-weight: 400;
+}
+
+.strong {
+  font-weight: 600;
+}
+
+/* Floating things over the canvas: one shadow each. */
+.pill,
+.minimap,
+.panel,
+.ghost,
+.search {
+  background: var(--im-bar);
+  box-shadow: var(--im-shadow-bar);
+}
+
+.pill {
+  border-radius: var(--im-radius-pill);
+  padding: 4px;
+}
+
+.zoom-label {
+  min-width: 58px;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 0 6px;
+}
+
+.minimap {
+  border-radius: var(--im-radius-segmented);
+}
+
+.panel,
+.ghost {
+  border-radius: var(--im-radius-card);
+}
+
+.panel-header {
+  padding: 14px 12px 10px 20px;
+}
+
+.panel-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--im-ink);
+}
+
+.panel-subtitle {
+  font-size: 12.5px;
+  color: var(--im-ink3);
+}
+
+.filters {
+  padding: 0 20px 12px 20px;
+}
+
+.panel scrolledwindow {
+  border-bottom-left-radius: var(--im-radius-card);
+  border-bottom-right-radius: var(--im-radius-card);
+}
+
+/* The grid: air between rows, no lines. */
+columnview.grid {
+  background: transparent;
+}
+
+columnview.grid > header > button {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--im-ink2);
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+columnview.grid > listview > row {
+  padding: 0;
+  transition: background 120ms ease-out;
+}
+
+columnview.grid > listview > row:hover {
+  background: color-mix(in srgb, var(--im-fill) 55%, transparent);
+}
+
+columnview.grid > listview > row:selected {
+  background: var(--im-fill);
+  color: var(--im-ink);
+}
+
+columnview.grid > listview > row > cell {
+  padding: 5px 12px;
+}
+
+.cell {
+  font-size: 13px;
+  color: var(--im-ink);
+}
+
+.null {
+  color: var(--im-ink3);
+}
+
+.link {
+  text-decoration: underline;
+  text-decoration-color: var(--im-ink3);
+}
+
+.link:hover {
+  text-decoration-color: var(--im-ink);
+}
+
+list.detail {
+  background: var(--im-card);
+  border-radius: var(--im-radius-segmented);
+  margin: 0 12px 12px 4px;
+  padding: 6px 0;
+}
+
+list.detail > row {
+  padding: 8px 14px;
+  border: none;
+}
+
+.detail-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--im-ink3);
+}
+
+.detail-value {
+  font-size: 12.5px;
+  color: var(--im-ink);
+}
+
+/* SQL console. */
+textview.console,
+textview.console > text {
+  background: var(--im-card);
+  font-size: 13px;
+}
+
+.console-bar {
+  padding: 8px 12px 8px 20px;
+}
+
+list.history > row {
+  padding: 0;
+}
+
+/* A server's own error text under a plain sentence. */
+.error-detail {
+  font-family: "Geist Mono", monospace;
+  font-size: 11.5px;
+  color: var(--im-ink3);
+}
+
+/* Search. */
+.search {
+  border-radius: var(--im-radius-search);
+  padding: 6px;
+}
+
+.search > entry {
+  min-height: 44px;
+  border-radius: var(--im-radius-pill);
+  background: transparent;
+  box-shadow: none;
+  font-size: 16px;
+}
+
+list.results {
+  background: transparent;
+  margin-top: 4px;
+}
+
+list.results > row {
+  border-radius: 14px;
+  padding: 8px 14px;
+}
+
+list.results > row:selected {
+  background: var(--im-fill);
+  color: var(--im-ink);
+}

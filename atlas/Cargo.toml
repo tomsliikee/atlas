@@ -1,0 +1,23 @@
+[package]
+name = "atlas"
+description = "A light ER diagram and database viewer for GNOME, in Insights Mono."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+gtk = { package = "gtk4", version = "0.11", features = ["v4_18"] }
+adw = { package = "libadwaita", version = "0.9", features = ["v1_7"] }
+sourceview5 = "0.11"
+cairo-rs = { version = "0.22", features = ["svg", "pdf", "png"] }
+atlas-core = { path = "../crates/atlas-core" }
+sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "tls-rustls", "mysql", "postgres", "sqlite"] }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "time", "process", "sync", "macros"] }
+gettext-rs = { version = "0.8", features = ["gettext-system"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
+
+[build-dependencies]
+atlas-core = { path = "../crates/atlas-core" }
+glib-build-tools = "0.22"

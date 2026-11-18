@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A small SQL definition for Atlas's console: keywords, functions,
+     strings, numbers, comments. The GNOME runtime ships no language specs. -->
+<language id="atlas-sql" name="SQL (Atlas)" version="2.0" _section="Source">
+  <metadata>
+    <property name="globs">*.sql</property>
+    <property name="line-comment-start">--</property>
+    <property name="block-comment-start">/*</property>
+    <property name="block-comment-end">*/</property>
+  </metadata>
+  <styles>
+    <style id="keyword" name="Keyword" map-to="def:keyword"/>
+    <style id="function" name="Function" map-to="def:function"/>
+    <style id="string" name="String" map-to="def:string"/>
+    <style id="number" name="Number" map-to="def:number"/>
+    <style id="comment" name="Comment" map-to="def:comment"/>
+    <style id="identifier" name="Quoted identifier" map-to="def:identifier"/>
+  </styles>
+  <default-regex-options case-sensitive="false"/>
+  <definitions>
+    <context id="line-comment" style-ref="comment" end-at-line-end="true">
+      <start>--|#</start>
+    </context>
+    <context id="block-comment" style-ref="comment">
+      <start>/\*</start>
+      <end>\*/</end>
+    </context>
+    <context id="string" style-ref="string">
+      <start>'</start>
+      <end>'</end>
+      <include>
+        <context id="escape" style-ref="string"><match>\\.|''</match></context>
+      </include>
+    </context>
+    <context id="quoted" style-ref="identifier">
+      <start>[`"]</start>
+      <end>\%{0@start}</end>
+    </context>
+    <context id="number" style-ref="number">
+      <match>\b[0-9]+(\.[0-9]+)?\b</match>
+    </context>
+    <context id="keywords" style-ref="keyword">
+      <keyword>select</keyword><keyword>from</keyword><keyword>where</keyword><keyword>and</keyword>
+      <keyword>or</keyword><keyword>not</keyword><keyword>in</keyword><keyword>is</keyword>
+      <keyword>null</keyword><keyword>like</keyword><keyword>ilike</keyword><keyword>between</keyword>
+      <keyword>join</keyword><keyword>left</keyword><keyword>right</keyword><keyword>inner</keyword>
+      <keyword>outer</keyword><keyword>full</keyword><keyword>cross</keyword><keyword>on</keyword>
+      <keyword>using</keyword><keyword>as</keyword><keyword>group</keyword><keyword>by</keyword>
+      <keyword>order</keyword><keyword>having</keyword><keyword>limit</keyword><keyword>offset</keyword>
+      <keyword>union</keyword><keyword>all</keyword><keyword>distinct</keyword><keyword>with</keyword>
+      <keyword>recursive</keyword><keyword>case</keyword><keyword>when</keyword><keyword>then</keyword>
+      <keyword>else</keyword><keyword>end</keyword><keyword>asc</keyword><keyword>desc</keyword>
+      <keyword>exists</keyword><keyword>show</keyword><keyword>describe</keyword><keyword>explain</keyword>
+      <keyword>tables</keyword><keyword>columns</keyword><keyword>values</keyword><keyword>over</keyword>
+      <keyword>partition</keyword><keyword>window</keyword><keyword>true</keyword><keyword>false</keyword>
+      <keyword>insert</keyword><keyword>update</keyword><keyword>delete</keyword><keyword>into</keyword>
+      <keyword>set</keyword><keyword>create</keyword><keyword>drop</keyword><keyword>alter</keyword>
+      <keyword>table</keyword><keyword>pragma</keyword>
+    </context>
+    <context id="functions" style-ref="function">
+      <keyword>count</keyword><keyword>sum</keyword><keyword>avg</keyword><keyword>min</keyword>
+      <keyword>max</keyword><keyword>coalesce</keyword><keyword>cast</keyword><keyword>concat</keyword>
+      <keyword>lower</keyword><keyword>upper</keyword><keyword>length</keyword><keyword>substring</keyword>
+      <keyword>now</keyword><keyword>date</keyword><keyword>round</keyword><keyword>ifnull</keyword>
+      <keyword>nullif</keyword><keyword>row_number</keyword><keyword>rank</keyword>
+    </context>
+    <context id="atlas-sql" class="no-spell-check">
+      <include>
+        <context ref="line-comment"/>
+        <context ref="block-comment"/>
+        <context ref="string"/>
+        <context ref="quoted"/>
+        <context ref="number"/>
+        <context ref="keywords"/>
+        <context ref="functions"/>
+      </include>
+    </context>
+  </definitions>
+</language>

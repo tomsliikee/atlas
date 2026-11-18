@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Atlas
+Comment=View database schemas as ER diagrams and browse their data
+Exec=atlas
+Icon=io.github.tomsliikee.Atlas
+Terminal=false
+Type=Application
+Categories=Development;Database;GTK;
+Keywords=database;sql;mariadb;mysql;postgres;sqlite;er;diagram;schema;
+StartupNotify=true
