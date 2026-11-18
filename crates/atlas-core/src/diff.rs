@@ -75,10 +75,10 @@ pub fn table_diff(from: &Schema, a: &Table, to: &Schema, b: &Table) -> TableDiff
                 if !old.data_type.trim().eq_ignore_ascii_case(c.data_type.trim()) {
                     what.push("type");
                 }
-                if old.nullable != c.nullable {
+                if old.accepts_null() != c.accepts_null() {
                     what.push("null");
                 }
-                if old.default.as_deref().map(str::trim) != c.default.as_deref().map(str::trim) {
+                if old.default_key() != c.default_key() {
                     what.push("default");
                 }
                 if old.primary != c.primary {
@@ -173,6 +173,19 @@ mod tests {
     fn same_schema_no_difference() {
         assert!(diff(&shop(), &shop()).is_empty());
         assert!(migration(Dialect::MySql, &shop(), &shop()).is_empty());
+    }
+
+    #[test]
+    fn catalog_quirks_are_not_differences() {
+        let from = shop();
+        let mut to = shop();
+        to.tables[0].columns[0].nullable = true; // a primary key, as SQLite reports it
+        to.tables[1].columns[2].default = Some("NULL".into());
+        let mut a = shop();
+        a.tables[1].columns[1].default = Some("TRUE".into());
+        to.tables[1].columns[1].default = Some("true".into());
+        assert!(diff(&from, &to).changed_tables.iter().all(|t| t.name != "customers"));
+        assert!(diff(&a, &to).changed_tables.iter().all(|t| t.name != "customers" && t.name != "orders"), "{:?}", diff(&a, &to));
     }
 
     #[test]

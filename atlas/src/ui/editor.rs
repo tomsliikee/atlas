@@ -220,7 +220,7 @@ impl Editor {
             original: c.as_ref().map(|c| c.name.clone()),
             name: entry(&base.name, &tr("name"), 14),
             data_type: entry(&base.data_type, &tr("type"), 14),
-            nullable: gtk::CheckButton::builder().active(base.nullable).tooltip_text(tr("May be NULL")).build(),
+            nullable: gtk::CheckButton::builder().active(base.accepts_null()).tooltip_text(tr("May be NULL")).build(),
             primary: gtk::CheckButton::builder().active(base.primary).tooltip_text(tr("Primary key")).build(),
             auto: gtk::CheckButton::builder().active(base.auto_increment).tooltip_text(tr("Numbered by the database")).build(),
             default: entry(base.default.as_deref().unwrap_or(""), &tr("default"), 12),

@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atlas\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-18 12:26+0100\n"
+"POT-Creation-Date: 2026-11-18 13:39+0100\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -20,242 +20,640 @@ msgid_plural "{} more columns"
 msgstr[0] "{} weitere Spalte"
 msgstr[1] "{} weitere Spalten"
 
-#: atlas/src/ui/connect.rs:77
-msgid "Database"
-msgstr "Datenbank"
+#: atlas/src/canvas/design.rs:63
+msgid "New design"
+msgstr "Neuer Entwurf"
 
-#: atlas/src/ui/connect.rs:80
+#: atlas/src/canvas/design.rs:307
+msgid "One column per line: name type [pk] [null] [auto] [default …]"
+msgstr "Eine Spalte pro Zeile: Name Typ [pk] [null] [auto] [default …]"
+
+#: atlas/src/canvas/design.rs:313 atlas/src/ui/compare.rs:178
+#: atlas/src/ui/data.rs:191 atlas/src/ui/editor.rs:427
+#: atlas/src/ui/window.rs:1009
+msgid "Apply"
+msgstr "Anwenden"
+
+#: atlas/src/canvas/design.rs:314
+msgid "Remove Table"
+msgstr "Tabelle entfernen"
+
+#: atlas/src/ui/admin.rs:40
+msgid "Size per table"
+msgstr "Größe je Tabelle"
+
+#: atlas/src/ui/admin.rs:43
+msgid "Connections"
+msgstr "Verbindungen"
+
+#: atlas/src/ui/admin.rs:46
+msgid "Server"
+msgstr "Server"
+
+#: atlas/src/ui/admin.rs:47
+msgid "Refresh"
+msgstr "Aktualisieren"
+
+#: atlas/src/ui/admin.rs:79
+msgid "Table"
+msgstr "Tabelle"
+
+#: atlas/src/ui/admin.rs:79
+msgid "Data"
+msgstr "Daten"
+
+#: atlas/src/ui/admin.rs:79 atlas/src/ui/editor.rs:158
+#: atlas/src/ui/structure.rs:92
+msgid "Indexes"
+msgstr "Indizes"
+
+#: atlas/src/ui/admin.rs:79
+msgid "Rows (about)"
+msgstr "Zeilen (ca.)"
+
+#: atlas/src/ui/admin.rs:81
+msgid "Error"
+msgstr "Fehler"
+
+#: atlas/src/ui/admin.rs:111
+msgid "Privileges"
+msgstr "Rechte"
+
+#: atlas/src/ui/admin.rs:114
+msgid "Grant…"
+msgstr "Gewähren …"
+
+#: atlas/src/ui/admin.rs:115
+msgid "Revoke…"
+msgstr "Entziehen …"
+
+#: atlas/src/ui/admin.rs:116
+msgid "Set Password…"
+msgstr "Passwort setzen …"
+
+#: atlas/src/ui/admin.rs:117 atlas/src/ui/structure.rs:51
+msgid "Drop…"
+msgstr "Löschen …"
+
+#: atlas/src/ui/admin.rs:123
+msgid "Users"
+msgstr "Benutzer"
+
+#: atlas/src/ui/admin.rs:124
+msgid "New user"
+msgstr "Neuer Benutzer"
+
+#: atlas/src/ui/admin.rs:186 atlas/src/ui/console.rs:78
+#: atlas/src/ui/console.rs:362 atlas/src/ui/import.rs:267
+msgid "Run"
+msgstr "Ausführen"
+
+#: atlas/src/ui/admin.rs:199
+msgid "New User"
+msgstr "Neuer Benutzer"
+
+#: atlas/src/ui/admin.rs:201 atlas/src/ui/admin.rs:223
+#: atlas/src/ui/admin.rs:249 atlas/src/ui/compare.rs:33
+#: atlas/src/ui/connect.rs:185 atlas/src/ui/connect.rs:407
+#: atlas/src/ui/console.rs:569 atlas/src/ui/data.rs:692
+#: atlas/src/ui/editor.rs:184 atlas/src/ui/import.rs:161
+#: atlas/src/ui/review.rs:61 atlas/src/ui/review.rs:83
+msgid "Cancel"
+msgstr "Abbrechen"
+
+#: atlas/src/ui/admin.rs:202 atlas/src/ui/admin.rs:224
+#: atlas/src/ui/admin.rs:250 atlas/src/ui/data.rs:223
+#: atlas/src/ui/editor.rs:183
+msgid "Review…"
+msgstr "Prüfen …"
+
+#: atlas/src/ui/admin.rs:211
+msgid "Create User?"
+msgstr "Benutzer anlegen?"
+
+#: atlas/src/ui/admin.rs:221
+msgid "Grant"
+msgstr "Gewähren"
+
+#: atlas/src/ui/admin.rs:221
+msgid "Revoke"
+msgstr "Entziehen"
+
+#: atlas/src/ui/admin.rs:237
+msgid "Grant?"
+msgstr "Gewähren?"
+
+#: atlas/src/ui/admin.rs:237
+msgid "Revoke?"
+msgstr "Entziehen?"
+
+#: atlas/src/ui/admin.rs:247
+msgid "Set Password"
+msgstr "Passwort setzen"
+
+#: atlas/src/ui/admin.rs:255
+msgid "Set Password?"
+msgstr "Passwort setzen?"
+
+#: atlas/src/ui/admin.rs:266
+msgid "Drop User?"
+msgstr "Benutzer löschen?"
+
+#: atlas/src/ui/admin.rs:277 atlas/src/ui/connect.rs:86
+#: atlas/src/ui/console.rs:567
 msgid "Name"
 msgstr "Name"
 
-#: atlas/src/ui/connect.rs:81
+#: atlas/src/ui/admin.rs:278
+msgid "Host (% for any)"
+msgstr "Host (% für alle)"
+
+#: atlas/src/ui/admin.rs:279 atlas/src/ui/connect.rs:91
+msgid "Password"
+msgstr "Passwort"
+
+#: atlas/src/ui/admin.rs:296
+msgid "Every table"
+msgstr "Alle Tabellen"
+
+#: atlas/src/ui/compare.rs:23 atlas/src/ui/window.rs:270
+msgid "Compare With…"
+msgstr "Vergleichen mit …"
+
+#: atlas/src/ui/compare.rs:23
+msgid ""
+"Another version of this database: a dump, an SQLite file, or a saved "
+"connection."
+msgstr "Eine andere Fassung dieser Datenbank: ein Dump, eine SQLite-Datei oder eine gespeicherte Verbindung."
+
+#: atlas/src/ui/compare.rs:25
+msgid "SQL dump or SQLite file…"
+msgstr "SQL-Dump oder SQLite-Datei …"
+
+#: atlas/src/ui/compare.rs:70
+msgid "Compare With File"
+msgstr "Mit Datei vergleichen"
+
+#: atlas/src/ui/compare.rs:98
+msgid "Could not read the other schema"
+msgstr "Das andere Schema konnte nicht gelesen werden"
+
+#: atlas/src/ui/compare.rs:123 atlas/src/ui/compare.rs:126
+msgid "index"
+msgstr "Index"
+
+#: atlas/src/ui/compare.rs:135
+msgid "checks"
+msgstr "Prüfungen"
+
+#: atlas/src/ui/compare.rs:145
+msgid "No differences in structure"
+msgstr "Keine Unterschiede in der Struktur"
+
+#: atlas/src/ui/compare.rs:151
+#, rust-format
+msgid "{this} and {other}"
+msgstr "{this} und {other}"
+
+#: atlas/src/ui/compare.rs:152
+#, rust-format
+msgid ""
+"+ only in {other} · − only here · ~ different. The SQL makes this database "
+"look like {other}."
+msgstr "+ nur in {other} · − nur hier · ~ verschieden. Das SQL macht diese Datenbank wie {other}."
+
+#: atlas/src/ui/compare.rs:161 atlas/src/ui/connect.rs:308
+#: atlas/src/ui/review.rs:111
+msgid "Close"
+msgstr "Schließen"
+
+#: atlas/src/ui/compare.rs:162
+msgid "Copy SQL"
+msgstr "SQL kopieren"
+
+#: atlas/src/ui/compare.rs:164
+msgid "Apply…"
+msgstr "Anwenden …"
+
+#: atlas/src/ui/compare.rs:172
+msgid "Copied"
+msgstr "Kopiert"
+
+#: atlas/src/ui/compare.rs:178
+msgid "Apply the Differences?"
+msgstr "Unterschiede anwenden?"
+
+#: atlas/src/ui/compare.rs:178
+msgid "Tables only in this database are dropped with their rows."
+msgstr "Tabellen, die es nur in dieser Datenbank gibt, werden samt Zeilen gelöscht."
+
+#: atlas/src/ui/compare.rs:181
+msgid "Structure changed"
+msgstr "Struktur geändert"
+
+#: atlas/src/ui/connect.rs:83 atlas/src/ui/window.rs:273
+msgid "Database"
+msgstr "Datenbank"
+
+#: atlas/src/ui/connect.rs:87
 msgid "Host"
 msgstr "Host"
 
-#: atlas/src/ui/connect.rs:82
+#: atlas/src/ui/connect.rs:88
 msgid "Port"
 msgstr "Port"
 
-#: atlas/src/ui/connect.rs:83
+#: atlas/src/ui/connect.rs:89
 msgid "User"
 msgstr "Benutzer"
 
-#: atlas/src/ui/connect.rs:84
+#: atlas/src/ui/connect.rs:90
 msgid "Database name"
 msgstr "Datenbankname"
 
-#: atlas/src/ui/connect.rs:85
-msgid "Password (not saved)"
-msgstr "Passwort (wird nicht gespeichert)"
-
-#: atlas/src/ui/connect.rs:86
+#: atlas/src/ui/connect.rs:92
 msgid "Unix socket (optional)"
 msgstr "Unix-Socket (optional)"
 
-#: atlas/src/ui/connect.rs:88
+#: atlas/src/ui/connect.rs:94
 msgid "SSH tunnel"
 msgstr "SSH-Tunnel"
 
-#: atlas/src/ui/connect.rs:89
+#: atlas/src/ui/connect.rs:95
 msgid "Through the system ssh: ~/.ssh/config and the agent apply"
 msgstr "Über das System-ssh: ~/.ssh/config und der Agent gelten"
 
-#: atlas/src/ui/connect.rs:93
+#: atlas/src/ui/connect.rs:99
 msgid "SSH host or alias"
 msgstr "SSH-Host oder Alias"
 
-#: atlas/src/ui/connect.rs:94
+#: atlas/src/ui/connect.rs:100
 msgid "SSH user (optional)"
 msgstr "SSH-Benutzer (optional)"
 
-#: atlas/src/ui/connect.rs:96
+#: atlas/src/ui/connect.rs:102
 msgid "SSH port (optional)"
 msgstr "SSH-Port (optional)"
 
-#: atlas/src/ui/connect.rs:133
+#: atlas/src/ui/connect.rs:106
+msgid "Allow changes"
+msgstr "Änderungen erlauben"
+
+#: atlas/src/ui/connect.rs:107
+msgid ""
+"Off: Atlas opens the session read-only and the server refuses every write"
+msgstr "Aus: Atlas öffnet die Sitzung schreibgeschützt, der Server lehnt jedes Schreiben ab"
+
+#: atlas/src/ui/connect.rs:111
+msgid "Remember password in the keyring"
+msgstr "Passwort im Schlüsselbund merken"
+
+#: atlas/src/ui/connect.rs:112
+msgid "Off: the password is asked for every time and kept nowhere"
+msgstr "Aus: Das Passwort wird jedes Mal abgefragt und nirgends gespeichert"
+
+#: atlas/src/ui/connect.rs:149
 msgid "Databases this user may open"
 msgstr "Datenbanken, die dieser Benutzer öffnen darf"
 
-#: atlas/src/ui/connect.rs:156
-msgid "Atlas opens every session read-only."
-msgstr "Atlas öffnet jede Sitzung schreibgeschützt."
-
-#: atlas/src/ui/connect.rs:163 atlas/src/ui/connect.rs:354
+#: atlas/src/ui/connect.rs:183 atlas/src/ui/connect.rs:407
 #: atlas/src/ui/start.rs:48
 msgid "Connect"
 msgstr "Verbinden"
 
-#: atlas/src/ui/connect.rs:165 atlas/src/ui/connect.rs:354
-msgid "Cancel"
-msgstr "Abbrechen"
-
-#: atlas/src/ui/connect.rs:172 atlas/src/ui/connect.rs:286
+#: atlas/src/ui/connect.rs:192 atlas/src/ui/connect.rs:308
 msgid "Edit Connection"
 msgstr "Verbindung bearbeiten"
 
-#: atlas/src/ui/connect.rs:172
+#: atlas/src/ui/connect.rs:192
 msgid "New Connection"
 msgstr "Neue Verbindung"
 
-#: atlas/src/ui/connect.rs:211 atlas/src/ui/connect.rs:290
+#: atlas/src/ui/connect.rs:233 atlas/src/ui/connect.rs:312
 msgid "Asking the server…"
 msgstr "Frage den Server …"
 
-#: atlas/src/ui/connect.rs:221
+#: atlas/src/ui/connect.rs:243
 msgid "This user may not open any database."
 msgstr "Dieser Benutzer darf keine Datenbank öffnen."
 
-#: atlas/src/ui/connect.rs:251
+#: atlas/src/ui/connect.rs:273
 #, rust-format
 msgid "{user} may not open “{db}”"
 msgstr "{user} darf „{db}“ nicht öffnen"
 
-#: atlas/src/ui/connect.rs:252
+#: atlas/src/ui/connect.rs:274
 msgid ""
 "The database name is probably not the one this user was given. Pick one of "
 "the databases below."
-msgstr "Wahrscheinlich ist das nicht der Datenbankname, den dieser Benutzer bekommen hat. Wähle unten eine seiner Datenbanken."
+msgstr ""
+"Wahrscheinlich ist das nicht der Datenbankname, den dieser Benutzer bekommen "
+"hat. Wähle unten eine seiner Datenbanken."
 
-#: atlas/src/ui/connect.rs:255
+#: atlas/src/ui/connect.rs:277
 #, rust-format
 msgid "There is no database “{db}”"
 msgstr "Es gibt keine Datenbank „{db}“"
 
-#: atlas/src/ui/connect.rs:256
+#: atlas/src/ui/connect.rs:278
 msgid "Check the spelling, or pick one of the databases below."
 msgstr "Prüfe die Schreibweise oder wähle unten eine Datenbank."
 
-#: atlas/src/ui/connect.rs:258
+#: atlas/src/ui/connect.rs:280
 msgid "User or password not accepted"
 msgstr "Benutzer oder Passwort nicht angenommen"
 
-#: atlas/src/ui/connect.rs:258
+#: atlas/src/ui/connect.rs:280
 #, rust-format
 msgid ""
 "The server rejected {user} with this password. Passwords are not saved, so "
 "it has to be typed again."
-msgstr "Der Server hat {user} mit diesem Passwort abgewiesen. Passwörter werden nicht gespeichert, es muss also neu eingegeben werden."
+msgstr ""
+"Der Server hat {user} mit diesem Passwort abgewiesen. Passwörter werden "
+"nicht gespeichert, es muss also neu eingegeben werden."
 
-#: atlas/src/ui/connect.rs:260
+#: atlas/src/ui/connect.rs:282
 #, rust-format
 msgid "The server does not accept {user} from here"
 msgstr "Der Server nimmt {user} von hier aus nicht an"
 
-#: atlas/src/ui/connect.rs:261
+#: atlas/src/ui/connect.rs:283
 msgid ""
 "The user exists, but is only allowed from other hosts. With an SSH tunnel "
 "Atlas connects from the server itself."
-msgstr "Den Benutzer gibt es, er ist aber nur von anderen Rechnern erlaubt. Mit einem SSH-Tunnel verbindet sich Atlas vom Server selbst aus."
+msgstr ""
+"Den Benutzer gibt es, er ist aber nur von anderen Rechnern erlaubt. Mit "
+"einem SSH-Tunnel verbindet sich Atlas vom Server selbst aus."
 
-#: atlas/src/ui/connect.rs:263
+#: atlas/src/ui/connect.rs:285
 #, rust-format
 msgid "Nothing answers on {host}:{port}"
 msgstr "Auf {host}:{port} antwortet nichts"
 
-#: atlas/src/ui/connect.rs:263
+#: atlas/src/ui/connect.rs:285
 msgid ""
 "Is the database running, and is host and port right? For a remote server, an "
 "SSH tunnel may be needed."
-msgstr "Läuft die Datenbank, und stimmen Host und Port? Für einen entfernten Server braucht es eventuell einen SSH-Tunnel."
+msgstr ""
+"Läuft die Datenbank, und stimmen Host und Port? Für einen entfernten Server "
+"braucht es eventuell einen SSH-Tunnel."
 
-#: atlas/src/ui/connect.rs:264
+#: atlas/src/ui/connect.rs:286
 #, rust-format
 msgid "The host “{host}” is unknown"
 msgstr "Der Host „{host}“ ist unbekannt"
 
-#: atlas/src/ui/connect.rs:264
+#: atlas/src/ui/connect.rs:286
 msgid "Check the host name."
 msgstr "Prüfe den Hostnamen."
 
-#: atlas/src/ui/connect.rs:265
+#: atlas/src/ui/connect.rs:287
 #, rust-format
 msgid "{host} did not answer in time"
 msgstr "{host} hat nicht rechtzeitig geantwortet"
 
-#: atlas/src/ui/connect.rs:265
+#: atlas/src/ui/connect.rs:287
 msgid "A firewall may drop the connection, or the server is busy."
-msgstr "Vielleicht verwirft eine Firewall die Verbindung, oder der Server ist ausgelastet."
+msgstr ""
+"Vielleicht verwirft eine Firewall die Verbindung, oder der Server ist "
+"ausgelastet."
 
-#: atlas/src/ui/connect.rs:266
+#: atlas/src/ui/connect.rs:288
 msgid "The SSH tunnel did not open"
 msgstr "Der SSH-Tunnel ging nicht auf"
 
-#: atlas/src/ui/connect.rs:266
+#: atlas/src/ui/connect.rs:288
 msgid ""
 "Atlas uses your ssh-agent; the key must be loaded (ssh-add) and the host "
 "must be in known_hosts."
-msgstr "Atlas nutzt deinen ssh-agent: Der Schlüssel muss geladen sein (ssh-add) und der Host in known_hosts stehen."
+msgstr ""
+"Atlas nutzt deinen ssh-agent: Der Schlüssel muss geladen sein (ssh-add) und "
+"der Host in known_hosts stehen."
 
-#: atlas/src/ui/connect.rs:267
+#: atlas/src/ui/connect.rs:289
 msgid "Could not connect"
 msgstr "Keine Verbindung möglich"
 
-#: atlas/src/ui/connect.rs:286
-msgid "Close"
-msgstr "Schließen"
+#: atlas/src/ui/connect.rs:399
+#, rust-format
+msgid "Password for {user}. It is kept in the keyring."
+msgstr "Passwort für {user}. Es wird im Schlüsselbund aufbewahrt."
 
-#: atlas/src/ui/connect.rs:349
+#: atlas/src/ui/connect.rs:401
 #, rust-format
 msgid "Password for {user}. It is not saved."
 msgstr "Passwort für {user}. Es wird nicht gespeichert."
 
-#: atlas/src/ui/data.rs:75
-msgid "contains"
-msgstr "enthält"
+#: atlas/src/ui/console.rs:69
+msgid "New tab"
+msgstr "Neuer Tab"
 
-#: atlas/src/ui/data.rs:80
-msgid "is NULL"
-msgstr "ist NULL"
+#: atlas/src/ui/console.rs:79
+msgid "Explain"
+msgstr "Plan"
 
-#: atlas/src/ui/data.rs:81
-msgid "is not NULL"
-msgstr "ist nicht NULL"
+#: atlas/src/ui/console.rs:79
+msgid "Show the query plan"
+msgstr "Den Abfrageplan zeigen"
 
-#: atlas/src/ui/data.rs:97
-msgid "Filter"
-msgstr "Filter"
-
-#: atlas/src/ui/data.rs:101
-msgid "Copy as CSV"
-msgstr "Als CSV kopieren"
-
-#: atlas/src/ui/data.rs:102
-msgid "Copy as SQL INSERT"
-msgstr "Als SQL-INSERT kopieren"
-
-#: atlas/src/ui/data.rs:105
-msgid "Copy rows (selected, or all loaded)"
-msgstr "Zeilen kopieren (ausgewählte oder alle geladenen)"
-
-#: atlas/src/ui/data.rs:111
-msgid "Row details"
-msgstr "Zeilendetails"
-
-#: atlas/src/ui/data.rs:115
-msgid "Close (Esc)"
-msgstr "Schließen (Esc)"
-
-#: atlas/src/ui/data.rs:126
-msgid "Add filter"
-msgstr "Filter hinzufügen"
-
-#: atlas/src/ui/data.rs:127
-msgid "Apply"
-msgstr "Anwenden"
-
-#: atlas/src/ui/data.rs:188
-msgid "Run"
-msgstr "Ausführen"
-
-#: atlas/src/ui/data.rs:199
+#: atlas/src/ui/console.rs:84
 msgid "History"
 msgstr "Verlauf"
 
-#: atlas/src/ui/data.rs:229
+#: atlas/src/ui/console.rs:92
+msgid "Saved queries"
+msgstr "Gespeicherte Abfragen"
+
+#: atlas/src/ui/console.rs:212
+msgid "Changes allowed"
+msgstr "Änderungen erlaubt"
+
+#: atlas/src/ui/console.rs:213
+msgid "Read-only"
+msgstr "Schreibgeschützt"
+
+#: atlas/src/ui/console.rs:343
+msgid "One statement at a time."
+msgstr "Eine Anweisung nach der anderen."
+
+#: atlas/src/ui/console.rs:344
+#, rust-format
+msgid ""
+"This connection is read-only. The statement would change the database "
+"({what})."
+msgstr "Diese Verbindung ist schreibgeschützt. Die Anweisung würde die Datenbank ändern ({what})."
+
+#: atlas/src/ui/console.rs:345
+#, rust-format
+msgid "Atlas could not tell whether this only reads, so it was not sent: {e}"
+msgstr ""
+"Atlas konnte nicht erkennen, ob das nur liest, daher wurde es nicht "
+"gesendet: {e}"
+
+#: atlas/src/ui/console.rs:359
+msgid "Run this statement?"
+msgstr "Diese Anweisung ausführen?"
+
+#: atlas/src/ui/console.rs:360
+#, rust-format
+msgid "It cannot be undone: {what}."
+msgstr "Das lässt sich nicht rückgängig machen: {what}."
+
+#: atlas/src/ui/console.rs:377 atlas/src/ui/console.rs:406
+#: atlas/src/ui/import.rs:270
+msgid "Running…"
+msgstr "Läuft …"
+
+#: atlas/src/ui/console.rs:391 atlas/src/ui/data.rs:988
+#: atlas/src/ui/data.rs:989
+#, rust-format
+msgid "{} row"
+msgid_plural "{} rows"
+msgstr[0] "{} Zeile"
+msgstr[1] "{} Zeilen"
+
+#: atlas/src/ui/console.rs:393
+#, rust-format
+msgid "first {} rows"
+msgstr "erste {} Zeilen"
+
+#: atlas/src/ui/console.rs:419 atlas/src/ui/data.rs:781
+#: atlas/src/ui/import.rs:272
+#, rust-format
+msgid "{} row changed"
+msgid_plural "{} rows changed"
+msgstr[0] "{} Zeile geändert"
+msgstr[1] "{} Zeilen geändert"
+
+#: atlas/src/ui/console.rs:451
+msgid "Planning…"
+msgstr "Plan wird erstellt …"
+
+#: atlas/src/ui/console.rs:490
+msgid "Query plan"
+msgstr "Abfrageplan"
+
+#: atlas/src/ui/console.rs:491
+msgid "Step"
+msgstr "Schritt"
+
+#: atlas/src/ui/console.rs:491
+msgid "Details"
+msgstr "Details"
+
+#: atlas/src/ui/console.rs:502
+msgid "Nothing run yet"
+msgstr "Noch nichts ausgeführt"
+
+#: atlas/src/ui/console.rs:519
+msgid "Save this query…"
+msgstr "Diese Abfrage speichern …"
+
+#: atlas/src/ui/console.rs:533 atlas/src/ui/start.rs:91
+#: atlas/src/ui/start.rs:110
+msgid "Forget"
+msgstr "Vergessen"
+
+#: atlas/src/ui/console.rs:566
+msgid "Save Query"
+msgstr "Abfrage speichern"
+
+#: atlas/src/ui/console.rs:570
+msgid "Save"
+msgstr "Speichern"
+
+#: atlas/src/ui/console.rs:604
+msgid "Query"
+msgstr "Abfrage"
+
+#: atlas/src/ui/data.rs:58 atlas/src/ui/data.rs:642
+#, rust-format
+msgid "{} change"
+msgid_plural "{} changes"
+msgstr[0] "{} Änderung"
+msgstr[1] "{} Änderungen"
+
+#: atlas/src/ui/data.rs:122
+msgid "contains"
+msgstr "enthält"
+
+#: atlas/src/ui/data.rs:127
+msgid "is NULL"
+msgstr "ist NULL"
+
+#: atlas/src/ui/data.rs:128
+msgid "is not NULL"
+msgstr "ist nicht NULL"
+
+#: atlas/src/ui/data.rs:144
+msgid "Filter"
+msgstr "Filter"
+
+#: atlas/src/ui/data.rs:149
+msgid "Copy as CSV"
+msgstr "Als CSV kopieren"
+
+#: atlas/src/ui/data.rs:150
+msgid "Copy as SQL INSERT"
+msgstr "Als SQL-INSERT kopieren"
+
+#: atlas/src/ui/data.rs:153
+msgid "Save as CSV…"
+msgstr "Als CSV speichern …"
+
+#: atlas/src/ui/data.rs:154
+msgid "Save as JSON…"
+msgstr "Als JSON speichern …"
+
+#: atlas/src/ui/data.rs:155
+msgid "Save as SQL…"
+msgstr "Als SQL speichern …"
+
+#: atlas/src/ui/data.rs:159
+msgid "Copy or save rows"
+msgstr "Zeilen kopieren oder speichern"
+
+#: atlas/src/ui/data.rs:165
+msgid "Row details"
+msgstr "Zeilendetails"
+
+#: atlas/src/ui/data.rs:169
+msgid "Close (Esc)"
+msgstr "Schließen (Esc)"
+
+#: atlas/src/ui/data.rs:170
+msgid "Rows"
+msgstr "Zeilen"
+
+#: atlas/src/ui/data.rs:171
+msgid "Structure"
+msgstr "Struktur"
+
+#: atlas/src/ui/data.rs:175
+msgid "New row"
+msgstr "Neue Zeile"
+
+#: atlas/src/ui/data.rs:176
+msgid "Delete selected rows"
+msgstr "Ausgewählte Zeilen löschen"
+
+#: atlas/src/ui/data.rs:190
+msgid "Add filter"
+msgstr "Filter hinzufügen"
+
+#: atlas/src/ui/data.rs:222
+msgid "Discard"
+msgstr "Verwerfen"
+
+#: atlas/src/ui/data.rs:224 atlas/src/ui/data.rs:797
+msgid "Commit"
+msgstr "Übernehmen"
+
+#: atlas/src/ui/data.rs:261
 msgid "No rows in a dump"
 msgstr "Keine Zeilen in einem Dump"
 
-#: atlas/src/ui/data.rs:232
+#: atlas/src/ui/data.rs:264
 msgid ""
 "A dump file is read for its structure only. Connect to the database to "
 "browse its data."
@@ -263,95 +661,263 @@ msgstr ""
 "Ein Dump wird nur auf seine Struktur gelesen. Verbinde dich mit der "
 "Datenbank, um ihre Daten zu sehen."
 
-#: atlas/src/ui/data.rs:411
+#: atlas/src/ui/data.rs:493
 msgid "Structure only"
 msgstr "Nur Struktur"
 
-#: atlas/src/ui/data.rs:419
+#: atlas/src/ui/data.rs:505
 msgid "Loading…"
 msgstr "Lädt …"
 
-#: atlas/src/ui/data.rs:443
+#: atlas/src/ui/data.rs:535
 msgid "SQL"
 msgstr "SQL"
 
-#: atlas/src/ui/data.rs:444
-msgid "Read-only"
-msgstr "Schreibgeschützt"
+#: atlas/src/ui/data.rs:674
+msgid "Leave a field empty for its default."
+msgstr "Ein leeres Feld bekommt seinen Standardwert."
 
-#: atlas/src/ui/data.rs:488
+#: atlas/src/ui/data.rs:690
+msgid "New Row"
+msgstr "Neue Zeile"
+
+#: atlas/src/ui/data.rs:691
+msgid "Add"
+msgstr "Hinzufügen"
+
+#: atlas/src/ui/data.rs:735
+msgid "Select the rows to delete first."
+msgstr "Zuerst die zu löschenden Zeilen auswählen."
+
+#: atlas/src/ui/data.rs:785
+msgid "Nothing was changed"
+msgstr "Nichts wurde geändert"
+
+#: atlas/src/ui/data.rs:792
+#, rust-format
+msgid "This deletes {} row. All changes go in one transaction."
+msgid_plural "This deletes {} rows. All changes go in one transaction."
+msgstr[0] "Das löscht {} Zeile. Alle Änderungen laufen in einer Transaktion."
+msgstr[1] "Das löscht {} Zeilen. Alle Änderungen laufen in einer Transaktion."
+
+#: atlas/src/ui/data.rs:795
+msgid "All changes go in one transaction."
+msgstr "Alle Änderungen laufen in einer Transaktion."
+
+#: atlas/src/ui/data.rs:797
+msgid "Commit Changes?"
+msgstr "Änderungen übernehmen?"
+
+#: atlas/src/ui/data.rs:848
 msgid "Value"
 msgstr "Wert"
 
-#: atlas/src/ui/data.rs:489
+#: atlas/src/ui/data.rs:849
 msgid "Remove filter"
 msgstr "Filter entfernen"
 
-#: atlas/src/ui/data.rs:595
+#: atlas/src/ui/data.rs:955
 msgid "Could not read the rows"
 msgstr "Die Zeilen konnten nicht gelesen werden"
 
-#: atlas/src/ui/data.rs:627
+#: atlas/src/ui/data.rs:987
 #, rust-format
 msgid "{loaded} of {total} rows"
 msgstr "{loaded} von {total} Zeilen"
 
-#: atlas/src/ui/data.rs:628 atlas/src/ui/data.rs:629 atlas/src/ui/data.rs:737
-#, rust-format
-msgid "{} row"
-msgid_plural "{} rows"
-msgstr[0] "{} Zeile"
-msgstr[1] "{} Zeilen"
-
-#: atlas/src/ui/data.rs:631
+#: atlas/src/ui/data.rs:991
 msgid "filtered"
 msgstr "gefiltert"
 
-#: atlas/src/ui/data.rs:697
+#: atlas/src/ui/data.rs:1044
+msgid "Keep this row"
+msgstr "Zeile behalten"
+
+#: atlas/src/ui/data.rs:1085
+msgid "Set to NULL"
+msgstr "Auf NULL setzen"
+
+#: atlas/src/ui/data.rs:1201
 #, rust-format
 msgid "Copied {} row"
 msgid_plural "Copied {} rows"
 msgstr[0] "{} Zeile kopiert"
 msgstr[1] "{} Zeilen kopiert"
 
-#: atlas/src/ui/data.rs:711
-msgid "One statement at a time."
-msgstr "Eine Anweisung nach der anderen."
-
-#: atlas/src/ui/data.rs:712
-#, rust-format
-msgid "Atlas only reads. This statement would change the database ({what})."
-msgstr "Atlas liest nur. Diese Anweisung würde die Datenbank ändern ({what})."
-
-#: atlas/src/ui/data.rs:713
-#, rust-format
-msgid "Atlas could not tell whether this only reads, so it was not sent: {e}"
-msgstr ""
-"Atlas konnte nicht erkennen, ob das nur liest, daher wurde es nicht "
-"gesendet: {e}"
-
-#: atlas/src/ui/data.rs:725
-msgid "Running…"
-msgstr "Läuft …"
-
-#: atlas/src/ui/data.rs:739
-#, rust-format
-msgid "first {} rows"
-msgstr "erste {} Zeilen"
-
-#: atlas/src/ui/data.rs:755
-msgid "Nothing run yet"
-msgstr "Noch nichts ausgeführt"
-
-#: atlas/src/ui/data.rs:777
+#: atlas/src/ui/data.rs:1222
 msgid "thousands-separator"
 msgstr "."
+
+#: atlas/src/ui/editor.rs:69
+msgid "Remove"
+msgstr "Entfernen"
+
+#: atlas/src/ui/editor.rs:77
+msgid "(default)"
+msgstr "(Standard)"
+
+#: atlas/src/ui/editor.rs:106
+msgid "Table name"
+msgstr "Tabellenname"
+
+#: atlas/src/ui/editor.rs:151
+msgid "name · type · NULL · key · auto · default"
+msgstr "Name · Typ · NULL · Schlüssel · auto · Standard"
+
+#: atlas/src/ui/editor.rs:155 atlas/src/ui/import.rs:113
+#: atlas/src/ui/structure.rs:61
+msgid "Columns"
+msgstr "Spalten"
+
+#: atlas/src/ui/editor.rs:155
+msgid "Add column"
+msgstr "Spalte hinzufügen"
+
+#: atlas/src/ui/editor.rs:158
+msgid "Add index"
+msgstr "Index hinzufügen"
+
+#: atlas/src/ui/editor.rs:160
+msgid "Foreign keys"
+msgstr "Fremdschlüssel"
+
+#: atlas/src/ui/editor.rs:160
+msgid "Add foreign key"
+msgstr "Fremdschlüssel hinzufügen"
+
+#: atlas/src/ui/editor.rs:192
+msgid "Edit Table"
+msgstr "Tabelle bearbeiten"
+
+#: atlas/src/ui/editor.rs:192
+msgid "New Table"
+msgstr "Neue Tabelle"
+
+#: atlas/src/ui/editor.rs:221 atlas/src/ui/editor.rs:249
+#: atlas/src/ui/editor.rs:283
+msgid "name"
+msgstr "Name"
+
+#: atlas/src/ui/editor.rs:222
+msgid "type"
+msgstr "Typ"
+
+#: atlas/src/ui/editor.rs:223
+msgid "May be NULL"
+msgstr "Darf NULL sein"
+
+#: atlas/src/ui/editor.rs:224
+msgid "Primary key"
+msgstr "Primärschlüssel"
+
+#: atlas/src/ui/editor.rs:225
+msgid "Numbered by the database"
+msgstr "Von der Datenbank nummeriert"
+
+#: atlas/src/ui/editor.rs:226
+msgid "default"
+msgstr "Standard"
+
+#: atlas/src/ui/editor.rs:250
+msgid "columns, comma separated"
+msgstr "Spalten, mit Komma getrennt"
+
+#: atlas/src/ui/editor.rs:251 atlas/src/ui/structure.rs:94
+msgid "unique"
+msgstr "eindeutig"
+
+#: atlas/src/ui/editor.rs:277
+msgid "On delete"
+msgstr "Beim Löschen"
+
+#: atlas/src/ui/editor.rs:278
+msgid "On update"
+msgstr "Beim Ändern"
+
+#: atlas/src/ui/editor.rs:284
+msgid "columns"
+msgstr "Spalten"
+
+#: atlas/src/ui/editor.rs:286
+msgid "target columns"
+msgstr "Zielspalten"
+
+#: atlas/src/ui/editor.rs:319
+msgid "The table needs a name."
+msgstr "Die Tabelle braucht einen Namen."
+
+#: atlas/src/ui/editor.rs:328
+msgid "Every column needs a name."
+msgstr "Jede Spalte braucht einen Namen."
+
+#: atlas/src/ui/editor.rs:331
+#, rust-format
+msgid "Two columns are called {name}."
+msgstr "Zwei Spalten heißen {name}."
+
+#: atlas/src/ui/editor.rs:342
+#, rust-format
+msgid "Column {name} needs a type."
+msgstr "Spalte {name} braucht einen Typ."
+
+#: atlas/src/ui/editor.rs:352
+msgid "A table needs at least one column."
+msgstr "Eine Tabelle braucht mindestens eine Spalte."
+
+#: atlas/src/ui/editor.rs:399
+msgid "Not yet"
+msgstr "Noch nicht"
+
+#: atlas/src/ui/editor.rs:418
+msgid ""
+"SQLite cannot change this in place: the table is rebuilt and its rows "
+"copied, in one transaction."
+msgstr "SQLite kann das nicht direkt ändern: Die Tabelle wird neu angelegt und ihre Zeilen kopiert, in einer Transaktion."
+
+#: atlas/src/ui/editor.rs:420
+msgid ""
+"MariaDB commits each structure change by itself; if one fails, the ones "
+"before it stay."
+msgstr "MariaDB übernimmt jede Strukturänderung sofort; scheitert eine, bleiben die davor bestehen."
+
+#: atlas/src/ui/editor.rs:422
+msgid "All statements go in one transaction."
+msgstr "Alle Anweisungen laufen in einer Transaktion."
+
+#: atlas/src/ui/editor.rs:427
+msgid "Change the Table?"
+msgstr "Tabelle ändern?"
+
+#: atlas/src/ui/editor.rs:433
+msgid "Table changed"
+msgstr "Tabelle geändert"
+
+#: atlas/src/ui/editor.rs:438
+msgid "The table was not changed"
+msgstr "Die Tabelle wurde nicht geändert"
+
+#: atlas/src/ui/editor.rs:451
+#, rust-format
+msgid "{name} and all its rows are deleted. This cannot be undone."
+msgstr "{name} wird samt allen Zeilen gelöscht. Das lässt sich nicht rückgängig machen."
+
+#: atlas/src/ui/editor.rs:452
+msgid "Drop Table?"
+msgstr "Tabelle löschen?"
+
+#: atlas/src/ui/editor.rs:452
+msgid "Drop"
+msgstr "Löschen"
+
+#: atlas/src/ui/editor.rs:456
+msgid "Table dropped"
+msgstr "Tabelle gelöscht"
 
 #: atlas/src/ui/export.rs:37
 msgid "Export Diagram"
 msgstr "Diagramm exportieren"
 
-#: atlas/src/ui/export.rs:46
+#: atlas/src/ui/export.rs:46 atlas/src/ui/export.rs:153
 msgid "This location cannot be written to."
 msgstr "An diesen Ort kann nicht geschrieben werden."
 
@@ -363,6 +929,126 @@ msgstr "Nichts zu exportieren."
 msgid "No renderer."
 msgstr "Kein Renderer."
 
+#: atlas/src/ui/export.rs:144
+msgid "Save Rows"
+msgstr "Zeilen speichern"
+
+#: atlas/src/ui/export.rs:159
+#, rust-format
+msgid "Saved {} row"
+msgid_plural "Saved {} rows"
+msgstr[0] "{} Zeile gespeichert"
+msgstr[1] "{} Zeilen gespeichert"
+
+#: atlas/src/ui/import.rs:78 atlas/src/ui/import.rs:168
+msgid "Import CSV"
+msgstr "CSV importieren"
+
+#: atlas/src/ui/import.rs:80 atlas/src/ui/import.rs:254
+msgid "Could not read the file"
+msgstr "Die Datei konnte nicht gelesen werden"
+
+#: atlas/src/ui/import.rs:98
+msgid "Into table"
+msgstr "In Tabelle"
+
+#: atlas/src/ui/import.rs:103
+msgid "Separator"
+msgstr "Trennzeichen"
+
+#: atlas/src/ui/import.rs:104
+msgid "Comma"
+msgstr "Komma"
+
+#: atlas/src/ui/import.rs:104
+msgid "Semicolon"
+msgstr "Semikolon"
+
+#: atlas/src/ui/import.rs:104
+msgid "Tab"
+msgstr "Tabulator"
+
+#: atlas/src/ui/import.rs:107
+msgid "First line holds the column names"
+msgstr "Erste Zeile enthält die Spaltennamen"
+
+#: atlas/src/ui/import.rs:108
+msgid "Empty fields are NULL"
+msgstr "Leere Felder sind NULL"
+
+#: atlas/src/ui/import.rs:113
+msgid "Which table column each CSV column goes into."
+msgstr "In welche Tabellenspalte jede CSV-Spalte kommt."
+
+#: atlas/src/ui/import.rs:115
+msgid "First rows"
+msgstr "Erste Zeilen"
+
+#: atlas/src/ui/import.rs:132
+msgid "(skip)"
+msgstr "(auslassen)"
+
+#: atlas/src/ui/import.rs:136
+msgid "Column"
+msgstr "Spalte"
+
+#: atlas/src/ui/import.rs:160
+msgid "Import"
+msgstr "Importieren"
+
+#: atlas/src/ui/import.rs:251
+msgid "Run SQL File"
+msgstr "SQL-Datei ausführen"
+
+#: atlas/src/ui/import.rs:258
+#, rust-format
+msgid "The file has {} statement."
+msgid_plural "The file has {} statements."
+msgstr[0] "Die Datei hat {} Anweisung."
+msgstr[1] "Die Datei hat {} Anweisungen."
+
+#: atlas/src/ui/import.rs:261
+#, rust-format
+msgid "{n} COPY blocks from pg_dump cannot be sent as SQL and are left out."
+msgstr "{n} COPY-Blöcke aus pg_dump lassen sich nicht als SQL senden und werden ausgelassen."
+
+#: atlas/src/ui/import.rs:264
+msgid ""
+"They run in one transaction; on the first error nothing stays, except "
+"structure changes in MariaDB."
+msgstr "Sie laufen in einer Transaktion; beim ersten Fehler bleibt nichts bestehen, außer Strukturänderungen in MariaDB."
+
+#: atlas/src/ui/import.rs:267
+msgid "Run SQL File?"
+msgstr "SQL-Datei ausführen?"
+
+#: atlas/src/ui/import.rs:289
+msgid "Back Up Database"
+msgstr "Datenbank sichern"
+
+#: atlas/src/ui/import.rs:298
+msgid "Backing up…"
+msgstr "Wird gesichert …"
+
+#: atlas/src/ui/import.rs:307
+#, rust-format
+msgid "Backed up {} row"
+msgid_plural "Backed up {} rows"
+msgstr[0] "{} Zeile gesichert"
+msgstr[1] "{} Zeilen gesichert"
+
+#: atlas/src/ui/import.rs:324
+msgid "Stopped; the file is incomplete."
+msgstr "Angehalten; die Datei ist unvollständig."
+
+#: atlas/src/ui/review.rs:145
+msgid "Starting…"
+msgstr "Wird gestartet …"
+
+#: atlas/src/ui/review.rs:151
+msgid "Stop"
+msgstr "Anhalten"
+
 #: atlas/src/ui/search.rs:28
 msgid "Go to table or column"
 msgstr "Zu Tabelle oder Spalte"
@@ -371,11 +1057,23 @@ msgstr "Zu Tabelle oder Spalte"
 msgid "table"
 msgstr "Tabelle"
 
-#: atlas/src/ui/sidebar.rs:25
+#: atlas/src/ui/sidebar.rs:28
 msgid "Filter tables"
 msgstr "Tabellen filtern"
 
-#: atlas/src/ui/sidebar.rs:77
+#: atlas/src/ui/sidebar.rs:104
+msgid "Routines"
+msgstr "Routinen"
+
+#: atlas/src/ui/sidebar.rs:108
+msgid "function"
+msgstr "Funktion"
+
+#: atlas/src/ui/sidebar.rs:109
+msgid "procedure"
+msgstr "Prozedur"
+
+#: atlas/src/ui/sidebar.rs:124
 msgid "view"
 msgstr "View"
 
@@ -399,248 +1097,408 @@ msgstr "Zuletzt"
 msgid "Edit"
 msgstr "Bearbeiten"
 
-#: atlas/src/ui/start.rs:91 atlas/src/ui/start.rs:110
-msgid "Forget"
-msgstr "Vergessen"
-
 #: atlas/src/ui/start.rs:109
 msgid "File"
 msgstr "Datei"
 
-#: atlas/src/ui/window.rs:69
+#: atlas/src/ui/structure.rs:50
+msgid "Edit Table…"
+msgstr "Tabelle bearbeiten …"
+
+#: atlas/src/ui/structure.rs:111
+msgid "References"
+msgstr "Verweist auf"
+
+#: atlas/src/ui/structure.rs:121
+msgid "inferred"
+msgstr "erschlossen"
+
+#: atlas/src/ui/structure.rs:127
+msgid "Referenced by"
+msgstr "Verwendet von"
+
+#: atlas/src/ui/structure.rs:133
+msgid "Checks"
+msgstr "Prüfungen"
+
+#: atlas/src/ui/structure.rs:139
+msgid "Triggers"
+msgstr "Trigger"
+
+#: atlas/src/ui/structure.rs:145
+msgid "Definition"
+msgstr "Definition"
+
+#: atlas/src/ui/structure.rs:163
+msgid "Copy DDL"
+msgstr "DDL kopieren"
+
+#: atlas/src/ui/window.rs:70
 msgid "Tables (F9)"
 msgstr "Tabellen (F9)"
 
-#: atlas/src/ui/window.rs:73
+#: atlas/src/ui/window.rs:74
 msgid "Close Database"
 msgstr "Datenbank schließen"
 
-#: atlas/src/ui/window.rs:80
+#: atlas/src/ui/window.rs:81
+msgid "Editing"
+msgstr "Bearbeiten"
+
+#: atlas/src/ui/window.rs:82
+msgid "This connection was opened with changes allowed"
+msgstr "Diese Verbindung wurde mit erlaubten Änderungen geöffnet"
+
+#: atlas/src/ui/window.rs:90
 msgid "Light or dark (Ctrl+Shift+L)"
 msgstr "Hell oder dunkel (Strg+Umschalt+L)"
 
-#: atlas/src/ui/window.rs:85
+#: atlas/src/ui/window.rs:95
 msgid "Go to (Ctrl+K)"
 msgstr "Gehe zu (Strg+K)"
 
-#: atlas/src/ui/window.rs:90
+#: atlas/src/ui/window.rs:100
 msgid "SQL (Ctrl+E)"
 msgstr "SQL (Strg+E)"
 
-#: atlas/src/ui/window.rs:94
+#: atlas/src/ui/window.rs:104
 msgid "PNG Image"
 msgstr "PNG-Bild"
 
-#: atlas/src/ui/window.rs:95
+#: atlas/src/ui/window.rs:105
 msgid "SVG Image"
 msgstr "SVG-Bild"
 
-#: atlas/src/ui/window.rs:96
+#: atlas/src/ui/window.rs:106
 msgid "PDF Document"
 msgstr "PDF-Dokument"
 
-#: atlas/src/ui/window.rs:97
+#: atlas/src/ui/window.rs:107
 msgid "Mermaid File"
 msgstr "Mermaid-Datei"
 
-#: atlas/src/ui/window.rs:98
+#: atlas/src/ui/window.rs:108
 msgid "Copy as Mermaid"
 msgstr "Als Mermaid kopieren"
 
-#: atlas/src/ui/window.rs:101
+#: atlas/src/ui/window.rs:111
 msgid "Export"
 msgstr "Exportieren"
 
-#: atlas/src/ui/window.rs:118
+#: atlas/src/ui/window.rs:128
 msgid "Actual size (Ctrl+1)"
 msgstr "Originalgröße (Strg+1)"
 
-#: atlas/src/ui/window.rs:127
+#: atlas/src/ui/window.rs:137
 msgid "Zoom out (Ctrl+−)"
 msgstr "Verkleinern (Strg+−)"
 
-#: atlas/src/ui/window.rs:129
+#: atlas/src/ui/window.rs:139
 msgid "Zoom in (Ctrl++)"
 msgstr "Vergrößern (Strg++)"
 
-#: atlas/src/ui/window.rs:130
+#: atlas/src/ui/window.rs:140
 msgid "Show all (Ctrl+0)"
 msgstr "Alles zeigen (Strg+0)"
 
-#: atlas/src/ui/window.rs:245
+#: atlas/src/ui/window.rs:256
 msgid "New Connection…"
 msgstr "Neue Verbindung …"
 
-#: atlas/src/ui/window.rs:246
+#: atlas/src/ui/window.rs:257
 msgid "Open File…"
 msgstr "Datei öffnen …"
 
-#: atlas/src/ui/window.rs:249
+#: atlas/src/ui/window.rs:258
+msgid "New Window"
+msgstr "Neues Fenster"
+
+#: atlas/src/ui/window.rs:261
+msgid "Allow Changes to This File"
+msgstr "Änderungen an dieser Datei erlauben"
+
+#: atlas/src/ui/window.rs:262
+msgid "New Table…"
+msgstr "Neue Tabelle …"
+
+#: atlas/src/ui/window.rs:263
+msgid "Design Mode"
+msgstr "Entwurfsmodus"
+
+#: atlas/src/ui/window.rs:264
+msgid "Apply Design…"
+msgstr "Entwurf anwenden …"
+
+#: atlas/src/ui/window.rs:265
+msgid "Save Design…"
+msgstr "Entwurf speichern …"
+
+#: atlas/src/ui/window.rs:266
+msgid "Export as SQL…"
+msgstr "Als SQL exportieren …"
+
+#: atlas/src/ui/window.rs:267
+msgid "Import CSV…"
+msgstr "CSV importieren …"
+
+#: atlas/src/ui/window.rs:268
+msgid "Run SQL File…"
+msgstr "SQL-Datei ausführen …"
+
+#: atlas/src/ui/window.rs:269
+msgid "Back Up…"
+msgstr "Sichern …"
+
+#: atlas/src/ui/window.rs:271
+msgid "Server…"
+msgstr "Server …"
+
+#: atlas/src/ui/window.rs:272
+msgid "Users…"
+msgstr "Benutzer …"
+
+#: atlas/src/ui/window.rs:275
 msgid "Inferred Relations"
 msgstr "Erschlossene Beziehungen"
 
-#: atlas/src/ui/window.rs:250
+#: atlas/src/ui/window.rs:276
 msgid "Minimap"
 msgstr "Minimap"
 
-#: atlas/src/ui/window.rs:251
+#: atlas/src/ui/window.rs:277
 msgid "Unfold All Tables"
 msgstr "Alle Tabellen aufklappen"
 
-#: atlas/src/ui/window.rs:252
+#: atlas/src/ui/window.rs:278
 msgid "Fold All Tables"
 msgstr "Alle Tabellen zuklappen"
 
-#: atlas/src/ui/window.rs:253
+#: atlas/src/ui/window.rs:279
 msgid "Tidy Up Layout"
 msgstr "Layout aufräumen"
 
-#: atlas/src/ui/window.rs:254
+#: atlas/src/ui/window.rs:280
 msgid "Reload Structure"
 msgstr "Struktur neu laden"
 
-#: atlas/src/ui/window.rs:257
+#: atlas/src/ui/window.rs:283
 msgid "Follow System Style"
 msgstr "Systemstil folgen"
 
-#: atlas/src/ui/window.rs:258 atlas/src/ui/window.rs:979
+#: atlas/src/ui/window.rs:284 atlas/src/ui/window.rs:1269
 msgid "Keyboard Shortcuts"
 msgstr "Tastenkürzel"
 
-#: atlas/src/ui/window.rs:259
+#: atlas/src/ui/window.rs:285
 msgid "About Atlas"
 msgstr "Über Atlas"
 
-#: atlas/src/ui/window.rs:260
+#: atlas/src/ui/window.rs:286
 msgid "Quit"
 msgstr "Beenden"
 
-#: atlas/src/ui/window.rs:262
+#: atlas/src/ui/window.rs:288
 msgid "Main Menu"
 msgstr "Hauptmenü"
 
-#: atlas/src/ui/window.rs:317
+#: atlas/src/ui/window.rs:343
 msgid "Mermaid diagram copied"
 msgstr "Mermaid-Diagramm kopiert"
 
-#: atlas/src/ui/window.rs:336
+#: atlas/src/ui/window.rs:352
+msgid "Open the connection with changes allowed, or use Design Mode."
+msgstr "Die Verbindung mit erlaubten Änderungen öffnen oder den Entwurfsmodus nutzen."
+
+#: atlas/src/ui/window.rs:370
+msgid "A dump has no rows to back up."
+msgstr "Ein Dump hat keine Zeilen zum Sichern."
+
+#: atlas/src/ui/window.rs:382
+msgid "SQLite files have no users."
+msgstr "SQLite-Dateien haben keine Benutzer."
+
+#: atlas/src/ui/window.rs:394
+msgid "Allow Changes?"
+msgstr "Änderungen erlauben?"
+
+#: atlas/src/ui/window.rs:395
+msgid ""
+"The file is opened again with writing allowed. Every change is shown as SQL "
+"before it runs."
+msgstr "Die Datei wird mit Schreibzugriff neu geöffnet. Jede Änderung wird als SQL gezeigt, bevor sie läuft."
+
+#: atlas/src/ui/window.rs:396
+msgid "Allow Changes"
+msgstr "Änderungen erlauben"
+
+#: atlas/src/ui/window.rs:406
+msgid "For a server, turn on “Allow changes” in the connection."
+msgstr "Bei einem Server „Änderungen erlauben“ in der Verbindung einschalten."
+
+#: atlas/src/ui/window.rs:418
+msgid ""
+"Design Mode: double-click empty space for a table, drag from a column to "
+"another table for a key."
+msgstr "Entwurfsmodus: Doppelklick auf freie Fläche für eine Tabelle, von einer Spalte auf eine andere Tabelle ziehen für einen Schlüssel."
+
+#: atlas/src/ui/window.rs:420
+msgid "Design Mode off"
+msgstr "Entwurfsmodus aus"
+
+#: atlas/src/ui/window.rs:434
+msgid "Save Design"
+msgstr "Entwurf speichern"
+
+#: atlas/src/ui/window.rs:438
+msgid "Export as SQL"
+msgstr "Als SQL exportieren"
+
+#: atlas/src/ui/window.rs:459 atlas/src/ui/window.rs:984
 #, rust-format
 msgid "Saved to {path}"
 msgstr "Gespeichert unter {path}"
 
-#: atlas/src/ui/window.rs:601
+#: atlas/src/ui/window.rs:779
 msgid "Databases and SQL dumps"
 msgstr "Datenbanken und SQL-Dumps"
 
-#: atlas/src/ui/window.rs:606
+#: atlas/src/ui/window.rs:784
 msgid "All Files"
 msgstr "Alle Dateien"
 
-#: atlas/src/ui/window.rs:611
+#: atlas/src/ui/window.rs:789
 msgid "Open Database or Dump"
 msgstr "Datenbank oder Dump öffnen"
 
-#: atlas/src/ui/window.rs:660
+#: atlas/src/ui/window.rs:838
 #, rust-format
 msgid "Connecting to {name}"
 msgstr "Verbinde mit {name}"
 
-#: atlas/src/ui/window.rs:713
+#: atlas/src/ui/window.rs:896
 #, rust-format
 msgid "Reading {name}"
 msgstr "Lese {name}"
 
-#: atlas/src/ui/window.rs:734
+#: atlas/src/ui/window.rs:920
 msgid "No CREATE TABLE statements found in this file."
 msgstr "In dieser Datei steht kein CREATE TABLE."
 
-#: atlas/src/ui/window.rs:747
+#: atlas/src/ui/window.rs:932
+msgid "Design"
+msgstr "Entwurf"
+
+#: atlas/src/ui/window.rs:941
 msgid "SQL dump · structure only"
 msgstr "SQL-Dump · nur Struktur"
 
-#: atlas/src/ui/window.rs:747
+#: atlas/src/ui/window.rs:942
 msgid "SQLite · read-only"
 msgstr "SQLite · schreibgeschützt"
 
-#: atlas/src/ui/window.rs:750
+#: atlas/src/ui/window.rs:943
+msgid "SQLite · changes allowed"
+msgstr "SQLite · Änderungen erlaubt"
+
+#: atlas/src/ui/window.rs:947
 #, rust-format
 msgid "{} statement could not be read"
 msgid_plural "{} statements could not be read"
 msgstr[0] "{} Anweisung konnte nicht gelesen werden"
 msgstr[1] "{} Anweisungen konnten nicht gelesen werden"
 
-#: atlas/src/ui/window.rs:943
+#: atlas/src/ui/window.rs:999
+msgid "The design matches the database"
+msgstr "Der Entwurf entspricht der Datenbank"
+
+#: atlas/src/ui/window.rs:1006
+msgid "Apply the Design?"
+msgstr "Entwurf anwenden?"
+
+#: atlas/src/ui/window.rs:1007
+msgid "Tables removed in the design are dropped with their rows."
+msgstr "Im Entwurf entfernte Tabellen werden samt Zeilen gelöscht."
+
+#: atlas/src/ui/window.rs:1014
+msgid "Design applied"
+msgstr "Entwurf angewendet"
+
+#: atlas/src/ui/window.rs:1027
+msgid "This connection is read-only. Turn on “Allow changes” for it first."
+msgstr "Diese Verbindung ist schreibgeschützt. Zuerst „Änderungen erlauben“ für sie einschalten."
+
+#: atlas/src/ui/window.rs:1233
 msgid "A light ER diagram and database viewer. It only reads."
 msgstr "Ein leichter ER-Diagramm- und Datenbank-Betrachter. Er liest nur."
 
-#: atlas/src/ui/window.rs:952
+#: atlas/src/ui/window.rs:1242
 msgid "Go to a table or column"
 msgstr "Zu einer Tabelle oder Spalte"
 
-#: atlas/src/ui/window.rs:953
+#: atlas/src/ui/window.rs:1243
 msgid "SQL console"
 msgstr "SQL-Konsole"
 
-#: atlas/src/ui/window.rs:954
+#: atlas/src/ui/window.rs:1244
 msgid "Run the SQL"
 msgstr "SQL ausführen"
 
-#: atlas/src/ui/window.rs:955
+#: atlas/src/ui/window.rs:1245
 msgid "Show or hide the table list"
 msgstr "Tabellenliste zeigen oder verbergen"
 
-#: atlas/src/ui/window.rs:956
+#: atlas/src/ui/window.rs:1246
 msgid "Two fingers, wheel"
 msgstr "Zwei Finger, Mausrad"
 
-#: atlas/src/ui/window.rs:956
+#: atlas/src/ui/window.rs:1246
 msgid "Move the view"
 msgstr "Ansicht verschieben"
 
-#: atlas/src/ui/window.rs:957
+#: atlas/src/ui/window.rs:1247
 msgid "Pinch, Ctrl+wheel"
 msgstr "Kneifen, Strg+Mausrad"
 
-#: atlas/src/ui/window.rs:957
+#: atlas/src/ui/window.rs:1247
 msgid "Zoom"
 msgstr "Zoomen"
 
-#: atlas/src/ui/window.rs:958
+#: atlas/src/ui/window.rs:1248
 msgid "Show all  /  actual size"
 msgstr "Alles zeigen  /  Originalgröße"
 
-#: atlas/src/ui/window.rs:959
+#: atlas/src/ui/window.rs:1249
 msgid "Arrow keys"
 msgstr "Pfeiltasten"
 
-#: atlas/src/ui/window.rs:959
+#: atlas/src/ui/window.rs:1249
 msgid "Next connected table"
 msgstr "Nächste verbundene Tabelle"
 
-#: atlas/src/ui/window.rs:960
+#: atlas/src/ui/window.rs:1250
 msgid "Space"
 msgstr "Leertaste"
 
-#: atlas/src/ui/window.rs:960
+#: atlas/src/ui/window.rs:1250
 msgid "Unfold or fold the table"
 msgstr "Tabelle auf- oder zuklappen"
 
-#: atlas/src/ui/window.rs:961
+#: atlas/src/ui/window.rs:1251
 msgid "Enter, double click"
 msgstr "Eingabe, Doppelklick"
 
-#: atlas/src/ui/window.rs:961
+#: atlas/src/ui/window.rs:1251
 msgid "Show its rows"
 msgstr "Ihre Zeilen zeigen"
 
-#: atlas/src/ui/window.rs:962
+#: atlas/src/ui/window.rs:1252
 msgid "Close search, panel, focus"
 msgstr "Suche, Panel, Fokus schließen"
 
-#: atlas/src/ui/window.rs:963
+#: atlas/src/ui/window.rs:1253
 msgid "Reload structure"
 msgstr "Struktur neu laden"
 
-#: atlas/src/ui/window.rs:964
+#: atlas/src/ui/window.rs:1254
 msgid "Light or dark"
 msgstr "Hell oder dunkel"

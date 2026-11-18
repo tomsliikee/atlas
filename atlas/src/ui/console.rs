@@ -190,7 +190,8 @@ impl Console {
             None => Tabs::default(),
         };
         self.loading.set(true);
-        while let Some(page) = self.tab_view.pages().item(0).and_downcast::<adw::TabPage>() {
+        while self.tab_view.n_pages() > 0 {
+            let page = self.tab_view.nth_page(0);
             self.tab_view.close_page(&page);
         }
         self.tabs.borrow_mut().clear();

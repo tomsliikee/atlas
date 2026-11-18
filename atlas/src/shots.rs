@@ -119,6 +119,62 @@ pub fn run(win: Rc<Win>, dir: PathBuf) {
     } else {
         steps.extend([Step::Theme(adw::ColorScheme::ForceDark), Step::Wait(500), Step::Shot("start-dark")]);
     }
+    // With ATLAS_EDIT=<a copy of an SQLite file> the writing side: the file
+    // opened with changes allowed, structure, a pending edit, a query plan,
+    // the table editor, server information, a schema compared, Design Mode.
+    // ATLAS_COMPARE=<dump> is the other side of the comparison.
+    if let Ok(path) = std::env::var("ATLAS_EDIT") {
+        let t = std::env::var("ATLAS_FOCUS").unwrap_or_else(|_| "products".into());
+        steps.extend([
+            Step::Theme(adw::ColorScheme::ForceLight),
+            Step::Act("close-db", None),
+            Step::Wait(400),
+            Step::Act("open-writable", Some(path)),
+            Step::Wait(2200),
+            Step::Act("structure", Some(t.clone())),
+            Step::Wait(1400),
+            Step::Shot("structure-light"),
+            Step::Act("close-panel", None),
+            Step::Wait(600),
+            Step::Act("data", Some(t.clone())),
+            Step::Wait(1400),
+            Step::Act("edit-cell", Some("title|Chef Knife, 21 cm".into())),
+            Step::Wait(500),
+            Step::Shot("edit-light"),
+            Step::Act("close-panel", None),
+            Step::Wait(600),
+            Step::Act("console-explain", Some("SELECT * FROM orders o JOIN customers c ON c.id = o.customer_id WHERE c.id = 3".into())),
+            Step::Wait(1500),
+            Step::Shot("plan-light"),
+            Step::Act("close-panel", None),
+            Step::Wait(600),
+            Step::Act("edit-table", Some(t.clone())),
+            Step::Wait(900),
+            Step::Shot("editor-light"),
+            Step::Act("close-dialog", None),
+            Step::Wait(500),
+            Step::Act("server", None),
+            Step::Wait(1200),
+            Step::Shot("server-light"),
+            Step::Act("close-dialog", None),
+            Step::Wait(500),
+        ]);
+        if let Ok(other) = std::env::var("ATLAS_COMPARE") {
+            steps.extend([Step::Act("compare-file", Some(other)), Step::Wait(1200), Step::Shot("compare-light"), Step::Act("close-dialog", None), Step::Wait(500)]);
+        }
+        steps.extend([
+            Step::Act("design", None),
+            Step::Wait(500),
+            Step::Act("design-add", None),
+            Step::Wait(900),
+            Step::Shot("design-light"),
+            Step::Theme(adw::ColorScheme::ForceDark),
+            Step::Wait(700),
+            Step::Shot("design-dark"),
+        ]);
+        next(win, Rc::new(dir), Rc::new(steps), 0);
+        return;
+    }
     // With ATLAS_FAIL=host:port:user:database a connection that fails, to
     // show the explanation (it needs a test user without password).
     if let Ok(spec) = std::env::var("ATLAS_FAIL") {

@@ -489,6 +489,24 @@ impl Win {
         };
         string_action("open-path", Box::new(|win, p| win.open_file(PathBuf::from(p))));
         string_action("open-writable", Box::new(|win, p| win.open_file_with(PathBuf::from(p), Access::ReadWrite)));
+        string_action("edit-cell", Box::new(|win, spec| {
+            if let Some((column, value)) = spec.split_once('|') {
+                win.panel.demo_edit(column, value);
+            }
+        }));
+        string_action("console-explain", Box::new(|win, sql| {
+            win.open_console();
+            win.panel.set_console_text(&sql);
+            win.panel.explain_console();
+        }));
+        string_action("edit-table", Box::new(|win, t| super::editor::open(&win.window, win.ctx.clone(), Some(&t))));
+        string_action("compare-file", Box::new(|win, p| super::compare::with_file(win.window.upcast_ref(), win.ctx.clone(), PathBuf::from(p))));
+        action("close-dialog", Box::new(|win| {
+            if let Some(d) = win.window.visible_dialog() {
+                d.force_close();
+            }
+        }));
+        action("design-add", Box::new(|win| win.canvas.add_table_at_center()));
         string_action("structure", Box::new(|win, t| {
             win.open_data(&t);
             win.panel.show_structure_now();

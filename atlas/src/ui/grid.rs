@@ -142,6 +142,11 @@ impl Grid {
         self.store.items_changed(0, n, n);
     }
 
+    /// The first row, if any.
+    pub fn first_row(&self) -> Option<Row> {
+        self.store.item(0).and_then(|o| o.downcast::<glib::BoxedAnyObject>().ok()).map(|b| b.borrow::<Row>().clone())
+    }
+
     /// Selects only `row`.
     pub fn select(&self, row: &Row) {
         for i in 0..self.store.n_items() {

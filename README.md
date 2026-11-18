@@ -1,7 +1,7 @@
 <div align="center">
   <img src="data/icons/scalable/apps/io.github.tomsliikee.Atlas.svg" width="96" alt="Atlas icon" />
   <h1>Atlas</h1>
-  <p><strong>A light ER diagram and database viewer for Linux. It draws the tables of a MariaDB, MySQL, PostgreSQL or SQLite database, or of an SQL dump, as cards you can zoom and move, and shows their rows. It only reads.</strong></p>
+  <p><strong>A light ER diagram and database viewer for Linux. It draws the tables of a MariaDB, MySQL, PostgreSQL or SQLite database, or of an SQL dump, as cards you can zoom and move, and shows their rows. It reads by default; a connection opened with changes allowed also edits rows and structure, always showing the SQL first.</strong></p>
 
   <p>
     <img src="https://img.shields.io/badge/Platform-Linux%20(Flatpak)-neutral?style=flat-square" alt="Platform" />
@@ -9,7 +9,7 @@
     <img src="https://img.shields.io/badge/Toolkit-GTK%204%20%2B%20libadwaita-neutral?style=flat-square" alt="Toolkit" />
     <img src="https://img.shields.io/badge/Databases-MariaDB%20%C2%B7%20MySQL%20%C2%B7%20PostgreSQL%20%C2%B7%20SQLite-neutral?style=flat-square" alt="Databases" />
     <img src="https://img.shields.io/badge/Design-Insights%20Mono-neutral?style=flat-square" alt="Design" />
-    <img src="https://img.shields.io/badge/Writes-never-neutral?style=flat-square" alt="Read-only" />
+    <img src="https://img.shields.io/badge/Writes-opt--in%20per%20connection-neutral?style=flat-square" alt="Writes opt-in" />
     <img src="https://img.shields.io/badge/License-MIT-neutral?style=flat-square" alt="License" />
   </p>
 </div>
@@ -28,9 +28,10 @@ Every claim below says how it is known: *tested* (and how), *built* (it compiles
 
 - **Live Databases:** **MariaDB** and **MySQL** (information_schema), **PostgreSQL** (pg_catalog, the session's current schema), **SQLite** files. *Tested* by `cargo test` against **MariaDB 10.11** and **PostgreSQL 17** in containers and against an SQLite file: tables, columns, primary and unique keys, foreign keys, row counts, paged and filtered rows.
 - **SQL Dumps:** `mariadb-dump`, `mysqldump`, `pg_dump` (with `COPY` blocks and `ALTER TABLE … ADD CONSTRAINT`), `sqlite3 .dump` or a hand-written `schema.sql`, read without a server. Only `CREATE TABLE` and `ALTER TABLE` are parsed, so a dump's INSERTs cost nothing. *Tested* by unit tests and on the `schema.sql` of a real web shop (10 tables).
-- **Read-Only for Real:** every session is read-only on the server (**MariaDB** `SET SESSION TRANSACTION READ ONLY`, **PostgreSQL** `default_transaction_read_only`, **SQLite** `mode=ro`). The SQL console also refuses anything that is not a single reading statement before it is sent, including `SET SESSION TRANSACTION READ WRITE`. *Tested*: an `UPDATE` fails on all three databases.
+- **Read-Only Unless Allowed:** a session is read-only on the server (**MariaDB** `SET SESSION TRANSACTION READ ONLY`, **PostgreSQL** `default_transaction_read_only`, **SQLite** opened read-only) unless the connection has **Allow changes** on (an SQLite file: **Allow Changes to This File**). On a read-only session the SQL console refuses anything that is not a single reading statement before it is sent, including `SET SESSION TRANSACTION READ WRITE`. The header says **Editing** when a session can write. *Tested*: an `UPDATE` fails on all three read-only sessions, and goes through on writable ones (`db/tests.rs`).
+- **Every Change Shown First:** grid edits, the table editor, imports, compare and Design Mode turn into SQL that is shown before it runs, in one transaction (MariaDB commits structure changes one by one; the dialog says so). Statements that lose data (`DROP`, `TRUNCATE`, `DELETE`/`UPDATE` without `WHERE`, dropping a column) are confirmed in the console too. *Tested*: commit and rollback against SQLite, MariaDB 10.11 and PostgreSQL 17 in containers; the classification by unit tests.
 - **Errors in Plain Words:** a failed connection says what is wrong (wrong database name, wrong password, user not allowed from this host, nothing listening, unknown host, timeout, SSH) with the server's own message below. When the database name was the problem, it lists the databases this user may open; one click connects to it. The connection form has the same list beside the database name. *Tested*: the classification by unit tests; the list against MariaDB 10.11, PostgreSQL 17 and a real MariaDB 11.8 (a wrong database name offered the right one); the dialog by screenshot in English and German.
-- **Passwords Never Stored:** asked on every connect, dropped with the connection. Connections are kept without them. *Tested* (unit test on the stored format).
+- **Passwords:** asked on every connect and dropped with the connection, unless **Remember password in the keyring** is on for that connection; then the desktop keyring keeps it (Secret portal in the Flatpak, through **oo7**), never Atlas' own files. *Tested*: the stored format never holds a password (unit test). The keyring is *built*, not tried.
 - **SSH Tunnel:** optional per connection, through the system's `ssh`, so `~/.ssh/config` aliases, `ProxyJump`, the agent and `known_hosts` apply as in a terminal. Unknown host keys are refused. *Built*, not yet tried against a server.
 - **ER Diagram:** cards with **PK/FK** marks and types in **Geist Mono**, **crow's-foot** lines from the foreign key row to the referenced row (one, zero-or-one, zero-or-many from nullability and uniqueness). *Tested* (screenshots, unit tests of the ends).
 - **Inferred Relations:** `kunde_id` → `kunden.id`, `customerId` → `customers`, `parent_category_id` → `categories`, drawn **dashed**, for databases without declared keys. **Ctrl+I** turns them off. *Tested* (unit tests, demo database).
@@ -39,7 +40,15 @@ Every claim below says how it is known: *tested* (and how), *built* (it compiles
 - **Motion:** springs from **Islands** for unfolding a card (cards below move with it), focus fading the unrelated tables, the camera flying to a table, the data panel growing out of its card, and a cross-fade between light and dark. Nothing ticks at rest. *Tested* by screenshots during and after the motion; the feel at full frame rate is not judged yet.
 - **Navigation:** table list with row counts and a filter, **Ctrl+K** search over tables and columns, arrow keys to the next connected table, a **minimap** that moves the view on click. *Tested* (screenshots).
 - **Data Browser:** 200 rows at a time as you scroll, sort by clicking a header, filters per column (contains, =, ≠, <, >, NULL), foreign key values as links to the referenced row, a detail column that pretty-prints JSON, copy as **CSV** or **SQL INSERT**. *Tested*: paging, filters and counts by `cargo test`, the panel and a filtered table by screenshots.
-- **SQL Console:** **Ctrl+E**, **Ctrl+Enter** runs, the first 1,000 rows, a history per database, SQL highlighting in black and white. *Tested* (screenshot of a real query and its result).
+- **SQL Console:** **Ctrl+E**, **Ctrl+Enter** runs, tabs that are kept per database, the first 1,000 rows, a history and **saved queries** per database, **autocomplete** for keywords, tables and the columns of the tables (and aliases) a statement names, and **Explain** for the query plan as an indented tree (PostgreSQL and MariaDB JSON plans, SQLite's query plan). *Tested*: completion and plan parsing by unit tests; the console by screenshot. Typing with the completion popup is *built*, not tried by hand.
+- **Structure:** per table the columns (types, defaults, generated and auto-numbered columns, enum values), indexes, foreign keys with `ON DELETE`/`ON UPDATE`, checks, triggers and the `CREATE` statement to copy; views keep their definition, procedures and functions are listed in the sidebar. Read from all three databases and from dumps. *Tested*: catalog reads against SQLite, MariaDB 10.11, PostgreSQL 17; DDL written by Atlas reads back through Atlas' dump parser (unit test).
+- **Editing Rows:** on a writable session, the detail pane becomes a form (enum columns as a list, a NULL toggle); a double click on a cell goes there. New rows, rows marked for deletion, changed cells marked in the grid; **Review**, **Discard**, **Commit**. Only tables with a primary key or a NOT NULL unique key can be edited. *Tested*: the generated SQL by unit tests, the commit path against all three databases. The form is *built*, not used by hand.
+- **Table Editor:** columns (rename, type, NULL, key, auto, default), indexes and foreign keys, for a new or an existing table; `ALTER TABLE` per dialect, SQLite by rebuilding the table with foreign keys off and checked before commit. *Tested*: unit tests per dialect, and against all three databases (type change, index, foreign key with `ON DELETE CASCADE`, an SQLite rebuild that keeps 180 child rows).
+- **Import, Backup:** **CSV** into a table (separator guessed, column mapping, header line, empty as NULL), an **SQL file** run statement by statement, and a **backup** as a plain SQL script (tables, rows page by page, then indexes, keys, views, triggers) that Atlas, the database clients and Atlas' dump reader all read. *Tested*: a backup dropped and restored against all three databases; CSV parsing and the INSERTs by unit tests. The dialogs are *built*.
+- **Compare:** the open schema against a dump, an SQLite file or a saved connection: tables, columns, indexes and keys that differ, and the SQL that makes this database look like the other. *Tested*: unit tests, and by screenshot against a changed dump (one new table, one new column, nothing else reported).
+- **Design Mode:** double-click empty canvas for a table, edit a table's columns as lines of text (`id integer pk auto`), drag from a column to another table for a foreign key, **Delete** removes, **Ctrl+Z**/**Ctrl+Shift+Z**. A design is saved as `.atlas.json`, exported as SQL, or applied to a writable database after review. *Built*; the text format by unit tests.
+- **Server and Users:** version, size per table, current connections; on a writable MariaDB or PostgreSQL session users and roles with their privileges, create, drop, set password, grant and revoke (passwords hidden in the review). *Built*; the statements by unit tests.
+- **Several Databases:** **Ctrl+Shift+N** opens another window with its own connection. *Built*.
 - **Export:** **PNG** (2x), **SVG** and **PDF** (vectors, through cairo) and **Mermaid** `erDiagram` for READMEs and Obsidian. *Tested*: all four written from the demo database and opened.
 - **Light and Dark:** follows the system, the header button flips it. *Tested* (screenshots).
 - **English and German:** after the system language (or `LANGUAGE`). The translations ship inside the app, not as a separate Flatpak locale extension. *Tested*: 148 of 148 strings, the connection error dialog looked at in German; the other screens not yet.
@@ -50,6 +59,12 @@ Every claim below says how it is known: *tested* (and how), *built* (it compiles
 | ![Search over tables and columns](readmestuff/shots/search-light.png) | ![The diagram in dark](readmestuff/shots/diagram-dark.png) |
 | ![The SQL console](readmestuff/shots/console-light.png) | ![A foreign key followed: filtered rows](readmestuff/shots/filter-light.png) |
 | ![A wrong database name, explained, with the right one to pick](readmestuff/shots/failed-light.png) | ![The connection form](readmestuff/shots/connect-light.png) |
+
+| Writing (an SQLite copy opened with changes allowed) | |
+| :--- | :--- |
+| ![Structure of a table with its CREATE statement](readmestuff/shots/structure-light.png) | ![A pending edit in the detail form, with Commit](readmestuff/shots/edit-light.png) |
+| ![The table editor](readmestuff/shots/editor-light.png) | ![A query plan in the console](readmestuff/shots/plan-light.png) |
+| ![Compared with a dump: what differs and the SQL](readmestuff/shots/compare-light.png) | ![Design Mode in dark, a new table](readmestuff/shots/design-dark.png) |
 
 ---
 

@@ -594,6 +594,22 @@ impl DataPanel {
         self.update_tools();
     }
 
+    /// For scripted screenshots: one pending change on the first row.
+    pub fn demo_edit(&self, column: &str, value: &str) {
+        let Some(row) = self.grid.first_row() else { return };
+        let columns = self.grid.columns();
+        let Some(i) = columns.iter().position(|c| c == column) else { return };
+        let key = self.changes.borrow().as_ref().and_then(|c| edit::key_of(&c.key_columns, &columns, &row));
+        let Some(key) = key else { return };
+        let original = row.get(i).cloned().flatten();
+        self.edits().change(|c| c.set(key, column, Some(value.to_owned()), original.as_deref()));
+        self.grid.select(&row);
+    }
+
+    pub fn explain_console(&self) {
+        self.console.explain();
+    }
+
     /// Switches to the structure of the open table.
     pub fn show_structure_now(&self) {
         self.structure_button.set_active(true);
@@ -1005,7 +1021,7 @@ impl DataPanel {
             if let (true, Some(key)) = (editable, key.clone()) {
                 let pending = self.changes.borrow().as_ref().and_then(|c| c.pending(&key, name).cloned());
                 let current = pending.clone().unwrap_or_else(|| value.clone());
-                item.append(&self.field(i, name, key, value.clone(), current, column.and_then(|c| c.enum_values.clone()), column.is_some_and(|c| c.nullable)));
+                item.append(&self.field(i, name, key, value.clone(), current, column.and_then(|c| c.enum_values.clone()), column.is_some_and(|c| c.accepts_null())));
             } else {
                 let text = match value {
                     Some(v) => pretty_json(v).unwrap_or_else(|| v.clone()),

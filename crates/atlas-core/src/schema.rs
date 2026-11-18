@@ -223,6 +223,19 @@ pub fn enum_values(data_type: &str) -> Option<Vec<String>> {
     Some(out)
 }
 
+impl Column {
+    /// NULL allowed in fact: a primary key column never is, whatever the
+    /// catalog says (SQLite reports `INTEGER PRIMARY KEY` as nullable).
+    pub fn accepts_null(&self) -> bool {
+        self.nullable && !self.primary
+    }
+
+    /// The default as text to compare: trimmed, keywords in any case.
+    pub fn default_key(&self) -> Option<String> {
+        self.default.as_deref().map(|d| d.trim().to_ascii_lowercase()).filter(|d| !d.is_empty() && d != "null")
+    }
+}
+
 impl Table {
     pub fn column(&self, name: &str) -> Option<&Column> {
         self.columns.iter().find(|c| c.name == name)

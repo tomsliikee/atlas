@@ -56,8 +56,8 @@ pub struct TableEdit<'a> {
 
 fn same_column(a: &Column, b: &Column) -> bool {
     a.data_type.trim().eq_ignore_ascii_case(b.data_type.trim())
-        && a.nullable == b.nullable
-        && a.default.as_deref().map(str::trim) == b.default.as_deref().map(str::trim)
+        && a.accepts_null() == b.accepts_null()
+        && a.default_key() == b.default_key()
         && a.auto_increment == b.auto_increment
         && a.generated == b.generated
         && a.comment.as_deref().unwrap_or("") == b.comment.as_deref().unwrap_or("")

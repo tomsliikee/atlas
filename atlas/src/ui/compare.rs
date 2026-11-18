@@ -56,6 +56,15 @@ pub fn open(parent: &impl IsA<gtk::Widget>, ctx: Rc<Ctx>) {
     dialog.present(Some(parent));
 }
 
+/// Compares with a file without asking for it (scripted runs).
+pub fn with_file(parent: &gtk::Widget, ctx: Rc<Ctx>, path: std::path::PathBuf) {
+    let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    load(parent, ctx, name, async move {
+        let text = std::fs::read(&path).map_err(|e| e.to_string())?;
+        Ok(atlas_core::dump::parse("other", &String::from_utf8_lossy(&text)).0)
+    });
+}
+
 fn pick_file(parent: &gtk::Widget, ctx: Rc<Ctx>) {
     let Some(window) = parent.root().and_downcast::<gtk::Window>() else { return };
     let dialog = gtk::FileDialog::builder().title(tr("Compare With File")).modal(true).build();
