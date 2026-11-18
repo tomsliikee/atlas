@@ -24,7 +24,39 @@ Every claim below says how it is known: *tested* (and how), *built* (it compiles
 
 ---
 
-## Features
+## Architecture Overview
+
+**Atlas** is two crates. **`atlas-core`** holds everything that is plain data (schema model, inference, layout, springs, SQL building and checking, dump parsing, Mermaid, stored formats, design tokens) and is tested without a display. **`atlas`** is the GTK application.
+
+```mermaid
+flowchart LR
+    subgraph Sources ["Sources (tokio + sqlx, text protocol)"]
+        Maria["MariaDB / MySQL"]
+        Pg["PostgreSQL"]
+        Lite["SQLite (mode=ro)"]
+        Dump["SQL dump<br/><b>sqlparser</b>"]
+        Ssh["ssh -L, optional"]
+    end
+    subgraph Core ["atlas-core"]
+        Schema["Schema"] --> Infer["Inferred relations"] --> Layout["Layered layout"]
+        Guard["Read-only guard"]
+    end
+    subgraph App ["atlas (GTK 4, libadwaita)"]
+        Canvas["Canvas<br/><b>GSK nodes, spring camera</b>"]
+        Panel["Data panel, SQL console"]
+        Export["PNG · SVG · PDF · Mermaid"]
+    end
+    Ssh --> Maria & Pg
+    Maria & Pg & Lite & Dump --> Schema
+    Layout --> Canvas --> Export
+    Guard --> Panel
+```
+
+More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/RENDERING.md](docs/RENDERING.md), [docs/MOTION.md](docs/MOTION.md), [docs/DESIGN.md](docs/DESIGN.md) and [docs/BUILD.md](docs/BUILD.md).
+
+---
+
+## Core Capabilities
 
 - **Live Databases:** **MariaDB** and **MySQL** (information_schema), **PostgreSQL** (pg_catalog, the session's current schema), **SQLite** files. *Tested* by `cargo test` against **MariaDB 10.11** and **PostgreSQL 17** in containers and against an SQLite file: tables, columns, primary and unique keys, foreign keys, row counts, paged and filtered rows.
 - **SQL Dumps:** `mariadb-dump`, `mysqldump`, `pg_dump` (with `COPY` blocks and `ALTER TABLE … ADD CONSTRAINT`), `sqlite3 .dump` or a hand-written `schema.sql`, read without a server. Only `CREATE TABLE` and `ALTER TABLE` are parsed, so a dump's INSERTs cost nothing. *Tested* by unit tests and on the `schema.sql` of a real web shop (10 tables).
@@ -68,41 +100,9 @@ Every claim below says how it is known: *tested* (and how), *built* (it compiles
 
 ---
 
-## Architecture Overview
+## Platform Support Matrix
 
-**Atlas** is two crates. **`atlas-core`** holds everything that is plain data (schema model, inference, layout, springs, SQL building and checking, dump parsing, Mermaid, stored formats, design tokens) and is tested without a display. **`atlas`** is the GTK application.
-
-```mermaid
-flowchart LR
-    subgraph Sources ["Sources (tokio + sqlx, text protocol)"]
-        Maria["MariaDB / MySQL"]
-        Pg["PostgreSQL"]
-        Lite["SQLite (mode=ro)"]
-        Dump["SQL dump<br/><b>sqlparser</b>"]
-        Ssh["ssh -L, optional"]
-    end
-    subgraph Core ["atlas-core"]
-        Schema["Schema"] --> Infer["Inferred relations"] --> Layout["Layered layout"]
-        Guard["Read-only guard"]
-    end
-    subgraph App ["atlas (GTK 4, libadwaita)"]
-        Canvas["Canvas<br/><b>GSK nodes, spring camera</b>"]
-        Panel["Data panel, SQL console"]
-        Export["PNG · SVG · PDF · Mermaid"]
-    end
-    Ssh --> Maria & Pg
-    Maria & Pg & Lite & Dump --> Schema
-    Layout --> Canvas --> Export
-    Guard --> Panel
-```
-
-More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/RENDERING.md](docs/RENDERING.md), [docs/MOTION.md](docs/MOTION.md), [docs/DESIGN.md](docs/DESIGN.md) and [docs/BUILD.md](docs/BUILD.md).
-
----
-
-## Platforms
-
-| System | Desktop | State |
+| **System** | **Desktop** | **Status** |
 | :--- | :--- | :--- |
 | **Fedora 44** | GNOME 50, Wayland | *tested* (Flatpak installed and driven) |
 | **CachyOS** | any | *planned*: same Flatpak, not run |
@@ -113,9 +113,9 @@ More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/RENDERING.md](docs/R
 
 ---
 
-## Keys
+## Keyboard Shortcuts
 
-| Key | Does |
+| **Linux** | **Action** |
 | :--- | :--- |
 | **Ctrl + K** | Go to a table or column |
 | **Ctrl + E**, **Ctrl + Enter** | SQL console, run |
@@ -135,9 +135,11 @@ More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/RENDERING.md](docs/R
 
 ---
 
-## Data and Paths
+## Data Storage & Disk Paths
 
-| Path | Holds |
+Everything Atlas keeps is a plain file in its Flatpak config folder; delete the folder to start fresh.
+
+| **File / Directory** | **Description** |
 | :--- | :--- |
 | **`~/.var/app/io.github.tomsliikee.Atlas/config/atlas/connections.json`** | Saved connections, never a password |
 | **`…/atlas/recent.json`** | The last 8 files opened |
@@ -147,21 +149,30 @@ More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/RENDERING.md](docs/R
 
 ---
 
-## Build and Install
+## Building and Running
 
+**1. Install the GNOME 51 SDK and the Rust extension** (Flathub must be set up as a remote):
 ```bash
 flatpak install --user flathub org.gnome.Sdk//51 org.gnome.Platform//51 org.freedesktop.Sdk.Extension.rust-stable//26.08
 ```
 
+**2. Clone the repository:**
+```bash
+git clone https://github.com/tomsliikee/atlas.git
+cd atlas
+```
+
+**3. Build and install the Flatpak:**
 ```bash
 flatpak-builder --user --install --force-clean build-dir build-aux/io.github.tomsliikee.Atlas.json
 ```
 
+**4. Run:**
 ```bash
 flatpak run io.github.tomsliikee.Atlas
 ```
 
-Tests, the screenshot mode and the database containers are in [docs/BUILD.md](docs/BUILD.md).
+The GTK code builds only inside the SDK. `cargo test` for **`atlas-core`** runs on the host. Tests, the screenshot mode and the database containers are in [docs/BUILD.md](docs/BUILD.md).
 
 ---
 
@@ -176,4 +187,4 @@ Tests, the screenshot mode and the database containers are in [docs/BUILD.md](do
 
 ## License
 
-**MIT**. **Inter**, **Geist Serif** and **Geist Mono** are under the **SIL Open Font License 1.1** (`insights-mono/fonts/`).
+Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for complete terms. **Inter**, **Geist Serif** and **Geist Mono** are under the **SIL Open Font License 1.1** (`insights-mono/fonts/`).
