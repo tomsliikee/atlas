@@ -17,6 +17,9 @@ gettext-rs = { version = "0.8", features = ["gettext-system"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
+# The desktop keyring (Secret portal in the Flatpak, Secret Service outside),
+# only for connections where the user turned "Remember password" on.
+oo7 = { version = "0.7", default-features = false, features = ["tokio", "native_crypto"] }
 
 [build-dependencies]
 atlas-core = { path = "../crates/atlas-core" }

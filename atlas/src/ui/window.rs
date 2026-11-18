@@ -17,7 +17,7 @@ use super::sidebar::Sidebar;
 use super::start::{Pick, Start};
 use super::{Ctx, config_dir, connect};
 use crate::canvas::Canvas;
-use crate::db::{self, Target};
+use crate::db::{self, Access, Target};
 use crate::i18n::tr;
 use crate::{APP_ID, motion, runtime, theme};
 
@@ -28,7 +28,7 @@ type WinStrFn = Box<dyn Fn(&Rc<Win>, String)>;
 #[derive(Clone)]
 enum Source {
     Server(Box<Connection>, String),
-    File(PathBuf),
+    File(PathBuf, Access),
 }
 
 pub struct Win {
@@ -53,6 +53,7 @@ pub struct Win {
     zoom_label: gtk::Button,
     diagram_only: Vec<gtk::Widget>,
     minimap: gtk::DrawingArea,
+    editing: gtk::Label,
     source: RefCell<Option<Source>>,
     animation: RefCell<Option<adw::Animation>>,
 }
@@ -75,6 +76,15 @@ pub fn build(app: &adw::Application) -> Rc<Win> {
         .build();
     header.pack_start(&close_db);
     header.pack_start(&sidebar_button);
+    // The session may write: said once, plainly, beside the title.
+    let editing = gtk::Label::builder()
+        .label(tr("Editing"))
+        .tooltip_text(tr("This connection was opened with changes allowed"))
+        .css_classes(["pill", "editing"])
+        .valign(gtk::Align::Center)
+        .visible(false)
+        .build();
+    header.pack_start(&editing);
     let theme_button = gtk::Button::builder()
         .icon_name(theme_icon())
         .tooltip_text(tr("Light or dark (Ctrl+Shift+L)"))
@@ -220,6 +230,7 @@ pub fn build(app: &adw::Application) -> Rc<Win> {
             export_button.upcast(),
         ],
         minimap,
+        editing,
         source: RefCell::default(),
         animation: RefCell::default(),
     });
@@ -244,7 +255,22 @@ fn main_menu() -> gtk::MenuButton {
     let open = gio::Menu::new();
     open.append(Some(&tr("New Connection…")), Some("win.new-connection"));
     open.append(Some(&tr("Open File…")), Some("win.open-file"));
+    open.append(Some(&tr("New Window")), Some("app.new-window"));
     menu.append_section(None, &open);
+    let database = gio::Menu::new();
+    database.append(Some(&tr("Allow Changes to This File")), Some("win.allow-changes"));
+    database.append(Some(&tr("New Table…")), Some("win.new-table"));
+    database.append(Some(&tr("Design Mode")), Some("win.design"));
+    database.append(Some(&tr("Apply Design…")), Some("win.apply-design"));
+    database.append(Some(&tr("Save Design…")), Some("win.save-design"));
+    database.append(Some(&tr("Export as SQL…")), Some("win.export-ddl"));
+    database.append(Some(&tr("Import CSV…")), Some("win.import-csv"));
+    database.append(Some(&tr("Run SQL File…")), Some("win.import-sql"));
+    database.append(Some(&tr("Back Up…")), Some("win.backup"));
+    database.append(Some(&tr("Compare With…")), Some("win.compare"));
+    database.append(Some(&tr("Server…")), Some("win.server"));
+    database.append(Some(&tr("Users…")), Some("win.users"));
+    menu.append_section(Some(&tr("Database")), &database);
     let view = gio::Menu::new();
     view.append(Some(&tr("Inferred Relations")), Some("win.show-inferred"));
     view.append(Some(&tr("Minimap")), Some("win.minimap"));
@@ -317,6 +343,103 @@ impl Win {
                 win.ctx.toast(&tr("Mermaid diagram copied"));
             }
         }));
+        action("new-table", Box::new(|win| {
+            if win.ctx.writable() {
+                super::editor::open(&win.window, win.ctx.clone(), None);
+            } else if win.canvas.design() {
+                win.canvas.add_table_at_center();
+            } else {
+                win.ctx.toast(&tr("Open the connection with changes allowed, or use Design Mode."));
+            }
+        }));
+        action("import-csv", Box::new(|win| {
+            if win.require_writable() {
+                let table = (win.panel.mode().as_deref() == Some("data")).then(|| win.panel.current_table());
+                super::import::csv_import(&win.window, win.ctx.clone(), table);
+            }
+        }));
+        action("import-sql", Box::new(|win| {
+            if win.require_writable() {
+                super::import::sql_import(&win.window, win.ctx.clone());
+            }
+        }));
+        action("backup", Box::new(|win| {
+            if win.ctx.session.borrow().is_some() {
+                super::import::backup(&win.window, win.ctx.clone());
+            } else {
+                win.ctx.toast(&tr("A dump has no rows to back up."));
+            }
+        }));
+        action("compare", Box::new(|win| super::compare::open(&win.window, win.ctx.clone())));
+        action("server", Box::new(|win| {
+            if win.ctx.session.borrow().is_some() {
+                super::admin::server_info(&win.window, win.ctx.clone());
+            }
+        }));
+        action("users", Box::new(|win| {
+            let sqlite = win.ctx.session.borrow().as_ref().is_none_or(|s| s.dialect == atlas_core::sql::Dialect::Sqlite);
+            if sqlite {
+                win.ctx.toast(&tr("SQLite files have no users."));
+            } else if win.require_writable() {
+                super::admin::users(&win.window, win.ctx.clone());
+            }
+        }));
+        action("allow-changes", Box::new(|win| {
+            let source = win.source.borrow().clone();
+            match source {
+                Some(Source::File(path, Access::ReadOnly)) if win.ctx.session.borrow().is_some() => {
+                    let p = path.clone();
+                    super::review::ask(
+                        &win.window,
+                        &tr("Allow Changes?"),
+                        &tr("The file is opened again with writing allowed. Every change is shown as SQL before it runs."),
+                        &tr("Allow Changes"),
+                        glib::clone!(
+                            #[weak(rename_to = w)]
+                            win.window,
+                            move || {
+                                let _ = gtk::prelude::WidgetExt::activate_action(&w, "win.open-writable", Some(&p.to_string_lossy().to_variant()));
+                            }
+                        ),
+                    );
+                }
+                Some(Source::Server(..)) => win.ctx.toast(&tr("For a server, turn on “Allow changes” in the connection.")),
+                _ => {}
+            }
+        }));
+        let design = gio::SimpleAction::new_stateful("design", None, &false.to_variant());
+        let ww = w.clone();
+        design.connect_activate(move |a, _| {
+            let Some(win) = ww.upgrade() else { return };
+            let on = !a.state().and_then(|s| s.get::<bool>()).unwrap_or(false);
+            a.set_state(&on.to_variant());
+            win.canvas.set_design(on);
+            win.ctx.toast(&if on {
+                tr("Design Mode: double-click empty space for a table, drag from a column to another table for a key.")
+            } else {
+                tr("Design Mode off")
+            });
+        });
+        self.window.add_action(&design);
+        // Sets the toggle without the toast, for design files.
+        let d = design.clone();
+        let set_state = gio::SimpleAction::new("design-state", Some(glib::VariantTy::BOOLEAN));
+        set_state.connect_activate(move |_, v| {
+            if let Some(on) = v.and_then(|v| v.get::<bool>()) {
+                d.set_state(&on.to_variant());
+            }
+        });
+        self.window.add_action(&set_state);
+        action("apply-design", Box::new(|win| win.apply_design()));
+        action("save-design", Box::new(|win| win.save_text_file(&tr("Save Design"), "atlas.json", |win| {
+            let schema = win.canvas.schema()?;
+            Some(atlas_core::design::save(&schema, &win.canvas.layout()))
+        })));
+        action("export-ddl", Box::new(|win| win.save_text_file(&tr("Export as SQL"), "sql", |win| {
+            let schema = win.canvas.schema()?;
+            let dialect = win.ctx.session.borrow().as_ref().map_or(atlas_core::sql::Dialect::MySql, |s| s.dialect);
+            Some(atlas_core::ddl::schema_script(dialect, &schema).joined())
+        })));
         action("about", Box::new(|win| win.about()));
         action("shortcuts", Box::new(|win| win.shortcuts()));
 
@@ -365,6 +488,11 @@ impl Win {
             self.window.add_action(&a);
         };
         string_action("open-path", Box::new(|win, p| win.open_file(PathBuf::from(p))));
+        string_action("open-writable", Box::new(|win, p| win.open_file_with(PathBuf::from(p), Access::ReadWrite)));
+        string_action("structure", Box::new(|win, t| {
+            win.open_data(&t);
+            win.panel.show_structure_now();
+        }));
         string_action("focus", Box::new(|win, t| win.canvas.focus_table(Some(&t), true)));
         string_action("data", Box::new(|win, t| win.open_data(&t)));
         string_action("console-sql", Box::new(|win, sql| {
@@ -478,6 +606,36 @@ impl Win {
         self.panel.on_close(move || {
             if let Some(win) = ww.upgrade() {
                 win.close_panel();
+            }
+        });
+        let ww = w.clone();
+        self.panel.on_edit_table(move |t| {
+            if let Some(win) = ww.upgrade() {
+                super::editor::open(&win.window, win.ctx.clone(), Some(t));
+            }
+        });
+        let ww = w.clone();
+        self.panel.on_drop_table(move |t| {
+            if let Some(win) = ww.upgrade() {
+                super::editor::drop_table(&win.window, win.ctx.clone(), t);
+            }
+        });
+        let ww = w.clone();
+        *self.ctx.on_schema_changed.borrow_mut() = Some(Rc::new(move || {
+            if let Some(win) = ww.upgrade() {
+                win.reload_schema();
+            }
+        }));
+        let ww = w.clone();
+        *self.ctx.on_rows_changed.borrow_mut() = Some(Rc::new(move || {
+            if let Some(win) = ww.upgrade() {
+                win.panel.reload_rows();
+            }
+        }));
+        let ww = w.clone();
+        self.canvas.connect_schema_changed(move |schema| {
+            if let Some(win) = ww.upgrade() {
+                win.design_changed(schema);
             }
         });
 
@@ -665,8 +823,9 @@ impl Win {
         let c = conn.clone();
         let typed = password.clone();
         glib::spawn_future_local(async move {
+            let access = if c.writable { Access::ReadWrite } else { Access::ReadOnly };
             let result = runtime::run(async move {
-                let session = db::connect(Target::Server(c), password).await?;
+                let session = db::connect_with(Target::Server(c), password, access).await?;
                 let schema = session.schema().await?;
                 Ok::<_, String>((session, schema))
             })
@@ -711,9 +870,13 @@ impl Win {
     }
 
     fn open_file(self: &Rc<Self>, path: PathBuf) {
+        self.open_file_with(path, Access::ReadOnly);
+    }
+
+    fn open_file_with(self: &Rc<Self>, path: PathBuf, access: Access) {
         let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         self.loading(&tr("Reading {name}").replace("{name}", &name));
-        *self.source.borrow_mut() = Some(Source::File(path.clone()));
+        *self.source.borrow_mut() = Some(Source::File(path.clone(), access));
         let w = Rc::downgrade(self);
         let p = path.clone();
         glib::spawn_future_local(async move {
@@ -724,12 +887,15 @@ impl Win {
                     .is_ok()
                     && &head == b"SQLite format 3\0";
                 if is_sqlite {
-                    let session = db::connect(Target::File(p), String::new()).await?;
+                    let session = db::connect_with(Target::File(p), String::new(), access).await?;
                     let schema = session.schema().await?;
                     Ok((Some(session), schema, 0))
                 } else {
                     let bytes = std::fs::read(&p).map_err(|e| e.to_string())?;
                     let text = String::from_utf8_lossy(&bytes);
+                    if let Some(d) = atlas_core::design::load(&text) {
+                        return Ok((None, d.schema, usize::MAX));
+                    }
                     let stem = p.file_stem().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
                     let (mut schema, report) = atlas_core::dump::parse(&stem, &text);
                     if schema.tables.is_empty() {
@@ -742,11 +908,22 @@ impl Win {
             .await;
             let Some(win) = w.upgrade() else { return };
             match result {
+                Ok((None, schema, usize::MAX)) => {
+                    // A design file: structure only, edited on the canvas.
+                    win.remember_file(&path);
+                    win.show_schema(schema, &path.to_string_lossy(), &tr("Design"));
+                    win.canvas.set_design(true);
+                    let _ = gtk::prelude::WidgetExt::activate_action(&win.window, "win.design-state", Some(&true.to_variant()));
+                }
                 Ok((session, schema, skipped)) => {
                     win.remember_file(&path);
                     let is_dump = session.is_none();
                     *win.ctx.session.borrow_mut() = session;
-                    let kind = if is_dump { tr("SQL dump · structure only") } else { tr("SQLite · read-only") };
+                    let kind = match (is_dump, access) {
+                        (true, _) => tr("SQL dump · structure only"),
+                        (false, Access::ReadOnly) => tr("SQLite · read-only"),
+                        (false, Access::ReadWrite) => tr("SQLite · changes allowed"),
+                    };
                     win.show_schema(schema, &path.to_string_lossy(), &kind);
                     if skipped > 0 {
                         win.ctx.toast(&crate::i18n::ntr("{} statement could not be read", "{} statements could not be read", skipped as u32).replace("{}", &skipped.to_string()));
@@ -773,7 +950,100 @@ impl Win {
         for w in &self.diagram_only {
             w.set_visible(true);
         }
+        self.editing.set_visible(self.ctx.writable());
         self.canvas.grab_focus();
+    }
+
+    /// Asks for a file and writes what `text` gives.
+    fn save_text_file(self: &Rc<Self>, title: &str, extension: &str, text: impl Fn(&Win) -> Option<String> + 'static) {
+        let Some(name) = self.canvas.schema().map(|s| s.name) else { return };
+        let dialog = gtk::FileDialog::builder().title(title).initial_name(format!("{name}.{extension}")).modal(true).build();
+        let w = Rc::downgrade(self);
+        dialog.save(Some(&self.window), gio::Cancellable::NONE, move |r| {
+            let (Ok(file), Some(win)) = (r, w.upgrade()) else { return };
+            let (Some(path), Some(content)) = (file.path(), text(&win)) else { return };
+            match std::fs::write(&path, content) {
+                Ok(()) => win.ctx.toast(&tr("Saved to {path}").replace("{path}", &path.display().to_string())),
+                Err(e) => win.ctx.toast(&e.to_string()),
+            }
+        });
+    }
+
+    /// The canvas design against the live structure: the SQL, reviewed,
+    /// then run.
+    fn apply_design(self: &Rc<Self>) {
+        if !self.require_writable() {
+            return;
+        }
+        let (Some(session), Some(live), Some(design)) = (self.ctx.session.borrow().clone(), self.ctx.schema.borrow().clone(), self.canvas.schema()) else { return };
+        let m = atlas_core::diff::migration(session.dialect, &live, &design);
+        if m.is_empty() {
+            self.ctx.toast(&tr("The design matches the database"));
+            return;
+        }
+        let ctx = self.ctx.clone();
+        let (statements, fk_off) = (m.statements.clone(), m.foreign_keys_off);
+        super::review::review(
+            &self.window,
+            &tr("Apply the Design?"),
+            &tr("Tables removed in the design are dropped with their rows."),
+            &m.text(),
+            &tr("Apply"),
+            true,
+            move || {
+                super::review::run_batch(session, statements, fk_off, move |r| match r {
+                    Ok(_) => {
+                        ctx.toast(&tr("Design applied"));
+                        ctx.schema_changed();
+                    }
+                    Err(e) => ctx.toast(&e),
+                });
+            },
+        );
+    }
+
+    fn require_writable(&self) -> bool {
+        if self.ctx.writable() {
+            return true;
+        }
+        self.ctx.toast(&tr("This connection is read-only. Turn on “Allow changes” for it first."));
+        false
+    }
+
+    /// The structure again from the open session, keeping the session, the
+    /// layout and what the panel shows.
+    fn reload_schema(self: &Rc<Self>) {
+        let Some(session) = self.ctx.session.borrow().clone() else { return };
+        let w = Rc::downgrade(self);
+        glib::spawn_future_local(async move {
+            let result = runtime::run(async move { session.schema().await }).await;
+            let Some(win) = w.upgrade() else { return };
+            match result {
+                Ok(schema) => {
+                    win.save_layout();
+                    let key = win.ctx.key.borrow().clone().unwrap_or_default();
+                    let layout: Layout = store::load(&config_dir().join("layouts").join(store::key_file(&key)));
+                    *win.ctx.schema.borrow_mut() = Some(schema.clone());
+                    win.sidebar.set_schema(Some(&schema));
+                    win.search.set_schema(Some(schema.clone()));
+                    win.canvas.set_schema(Some(schema), &layout);
+                    win.panel.refresh_structure();
+                    win.panel.reload_rows();
+                }
+                Err(e) => win.ctx.toast(&e),
+            }
+        });
+    }
+
+    /// A change made in Design Mode. Without a writable session the design
+    /// is the schema; with one, the user applies it with "Apply Design".
+    fn design_changed(self: &Rc<Self>, schema: Schema) {
+        self.sidebar.set_schema(Some(&schema));
+        self.search.set_schema(Some(schema.clone()));
+        if self.ctx.session.borrow().is_none() || !self.ctx.writable() {
+            *self.ctx.schema.borrow_mut() = Some(schema);
+        }
+        self.save_layout();
     }
 
     fn save_layout(&self) {
@@ -812,7 +1082,7 @@ impl Win {
         self.hide_panel_now();
         match source {
             Some(Source::Server(c, p)) => self.open_server(*c, p),
-            Some(Source::File(path)) => self.open_file(path),
+            Some(Source::File(path, access)) => self.open_file_with(path, access),
             None => {}
         }
     }

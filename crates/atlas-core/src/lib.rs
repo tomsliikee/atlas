@@ -4,10 +4,12 @@
 //! GTK or a database, so `cargo test -p atlas-core` runs on any machine with
 //! a Rust toolchain.
 
+pub mod admin;
 pub mod backup;
 pub mod complete;
 pub mod csv;
 pub mod ddl;
+pub mod design;
 pub mod diff;
 pub mod dump;
 pub mod edit;

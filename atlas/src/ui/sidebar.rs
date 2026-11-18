@@ -16,6 +16,9 @@ pub struct Sidebar {
     filter: gtk::SearchEntry,
     names: RefCell<Vec<String>>,
     activate: RefCell<Option<NameFn>>,
+    routines: gtk::Expander,
+    routine_list: gtk::ListBox,
+    definitions: RefCell<Vec<(String, String)>>,
     /// Set while the selection follows the canvas, so it is not echoed back.
     syncing: std::cell::Cell<bool>,
 }
@@ -28,12 +31,25 @@ impl Sidebar {
         let widget = gtk::Box::builder().orientation(gtk::Orientation::Vertical).css_classes(["sidebar"]).build();
         widget.append(&filter);
         widget.append(&scroll);
+        // Procedures and functions: read their definition.
+        let routine_list = gtk::ListBox::builder().css_classes(["navigation-sidebar", "tables"]).build();
+        let routine_scroll = gtk::ScrolledWindow::builder()
+            .child(&routine_list)
+            .max_content_height(220)
+            .propagate_natural_height(true)
+            .hscrollbar_policy(gtk::PolicyType::Never)
+            .build();
+        let routines = gtk::Expander::builder().child(&routine_scroll).visible(false).margin_start(10).margin_end(10).margin_bottom(8).build();
+        widget.append(&routines);
         let sidebar = Rc::new(Sidebar {
             widget,
             list,
             filter,
             names: RefCell::default(),
             activate: RefCell::default(),
+            routines,
+            routine_list,
+            definitions: RefCell::default(),
             syncing: Default::default(),
         });
         let s = Rc::downgrade(&sidebar);
@@ -46,6 +62,17 @@ impl Sidebar {
             if let (Some(name), Some(f)) = (name, s.activate.borrow().as_ref()) {
                 f(&name);
             }
+        });
+        let s = Rc::downgrade(&sidebar);
+        sidebar.routine_list.connect_row_activated(move |_, row| {
+            let Some(s) = s.upgrade() else { return };
+            let Some((name, text)) = s.definitions.borrow().get(row.index() as usize).cloned() else { return };
+            let header = adw::HeaderBar::new();
+            let toolbar = adw::ToolbarView::new();
+            toolbar.add_top_bar(&header);
+            toolbar.set_content(Some(&super::structure::definition(&text)));
+            let dialog = adw::Dialog::builder().title(&name).content_width(640).content_height(520).child(&toolbar).build();
+            adw::prelude::AdwDialogExt::present(&dialog, Some(&s.widget));
         });
         let s = Rc::downgrade(&sidebar);
         sidebar.filter.connect_search_changed(move |e| {
@@ -67,7 +94,27 @@ impl Sidebar {
         }
         self.names.borrow_mut().clear();
         self.filter.set_text("");
+        while let Some(child) = self.routine_list.first_child() {
+            self.routine_list.remove(&child);
+        }
+        self.definitions.borrow_mut().clear();
+        self.routines.set_visible(false);
         let Some(schema) = schema else { return };
+        if !schema.routines.is_empty() {
+            self.routines.set_label(Some(&format!("{} ({})", tr("Routines"), schema.routines.len())));
+            self.routines.set_visible(true);
+            for r in &schema.routines {
+                let kind = match r.kind {
+                    atlas_core::schema::RoutineKind::Function => tr("function"),
+                    atlas_core::schema::RoutineKind::Procedure => tr("procedure"),
+                };
+                let row = gtk::Box::builder().spacing(8).build();
+                row.append(&gtk::Label::builder().label(&r.name).xalign(0.0).hexpand(true).ellipsize(gtk::pango::EllipsizeMode::End).build());
+                row.append(&gtk::Label::builder().label(&kind).css_classes(["count"]).build());
+                self.routine_list.append(&row);
+                self.definitions.borrow_mut().push((r.name.clone(), r.definition.clone()));
+            }
+        }
         let mut tables: Vec<_> = schema.tables.iter().collect();
         tables.sort_by_key(|t| t.name.to_lowercase());
         for t in tables {

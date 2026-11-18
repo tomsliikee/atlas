@@ -96,3 +96,140 @@ fn draw_to(surface: &gtk::cairo::Surface, node: &gsk::RenderNode, bounds: &graph
     Ok(())
 }
 
+
+/// Row formats for "Save as…".
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Rows {
+    Csv,
+    Json,
+    Sql,
+}
+
+impl Rows {
+    fn extension(self) -> &'static str {
+        match self {
+            Rows::Csv => "csv",
+            Rows::Json => "json",
+            Rows::Sql => "sql",
+        }
+    }
+}
+
+/// Where the rows come from: what the grid holds, or a whole table read
+/// page by page.
+pub enum Source {
+    Loaded(Vec<String>, Vec<Vec<Option<String>>>),
+    Table {
+        session: crate::db::Session,
+        table: String,
+        filters: Vec<atlas_core::sql::Filter>,
+        sort: Option<atlas_core::sql::Sort>,
+        types: Vec<String>,
+    },
+}
+
+const EXPORT_PAGE: u64 = 2000;
+
+/// Asks for a file, then writes the rows there.
+pub fn save_rows(
+    parent: &impl IsA<gtk::Widget>,
+    ctx: &std::rc::Rc<super::Ctx>,
+    name: &str,
+    format: Rows,
+    dialect: atlas_core::sql::Dialect,
+    source: Source,
+) {
+    let Some(window) = parent.root().and_downcast::<gtk::Window>() else { return };
+    let dialog = gtk::FileDialog::builder()
+        .title(tr("Save Rows"))
+        .initial_name(format!("{name}.{}", format.extension()))
+        .modal(true)
+        .build();
+    let ctx = ctx.clone();
+    let name = name.to_owned();
+    dialog.save(Some(&window), gio::Cancellable::NONE, move |result| {
+        let Ok(file) = result else { return };
+        let Some(path) = file.path() else {
+            ctx.toast(&tr("This location cannot be written to."));
+            return;
+        };
+        gtk::glib::spawn_future_local(async move {
+            let written = crate::runtime::run(async move { write_rows(&path, &name, format, dialect, source).await }).await;
+            match written {
+                Ok(n) => ctx.toast(&crate::i18n::ntr("Saved {} row", "Saved {} rows", n as u32).replace("{}", &n.to_string())),
+                Err(e) => ctx.toast(&e),
+            }
+        });
+    });
+}
+
+async fn write_rows(
+    path: &Path,
+    name: &str,
+    format: Rows,
+    dialect: atlas_core::sql::Dialect,
+    source: Source,
+) -> Result<usize, String> {
+    use atlas_core::sql;
+    use std::io::Write as _;
+    let mut out = std::io::BufWriter::new(std::fs::File::create(path).map_err(|e| e.to_string())?);
+    let mut total = 0;
+    let mut first = true;
+    let mut emit = |columns: &[String], types: &[String], rows: &[Vec<Option<String>>], last: bool| -> Result<(), String> {
+        let text = match format {
+            Rows::Csv => {
+                let t = sql::csv(columns, rows);
+                // The header only once.
+                if first { t } else { t.split_once("\r\n").map(|(_, r)| r.to_owned()).unwrap_or_default() }
+            }
+            Rows::Sql if rows.is_empty() => String::new(),
+            Rows::Sql => sql::insert_batch(dialect, name, columns, types, rows),
+            Rows::Json => {
+                let body = sql::json(columns, rows);
+                let inner = body.trim().trim_start_matches('[').trim_end_matches(']').trim().to_owned();
+                let mut t = String::new();
+                if first {
+                    t.push_str("[\n");
+                }
+                if !inner.is_empty() {
+                    if !first && total > 0 {
+                        t.push_str(",\n");
+                    }
+                    t.push_str("  ");
+                    t.push_str(&inner);
+                }
+                if last {
+                    t.push_str("\n]\n");
+                }
+                t
+            }
+        };
+        out.write_all(text.as_bytes()).map_err(|e| e.to_string())?;
+        total += rows.len();
+        first = false;
+        Ok(())
+    };
+    match source {
+        Source::Loaded(columns, rows) => emit(&columns, &[], &rows, true)?,
+        Source::Table { session, table, filters, sort, types } => {
+            let mut offset = 0;
+            loop {
+                let q = sql::page(session.dialect, &table, &filters, sort.as_ref(), EXPORT_PAGE, offset);
+                let set = session.query(q, EXPORT_PAGE as usize).await?;
+                let last = (set.rows.len() as u64) < EXPORT_PAGE;
+                let columns = if set.columns.is_empty() { Vec::new() } else { set.columns.clone() };
+                if set.rows.is_empty() && offset > 0 {
+                    emit(&columns, &types, &[], true)?;
+                    break;
+                }
+                emit(&columns, &types, &set.rows, last)?;
+                offset += set.rows.len() as u64;
+                if last {
+                    break;
+                }
+            }
+        }
+    }
+    out.flush().map_err(|e| e.to_string())?;
+    Ok(total)
+}

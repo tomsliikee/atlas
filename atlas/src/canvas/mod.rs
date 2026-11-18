@@ -7,6 +7,7 @@
 //! is removed when everything rests, so the canvas costs nothing when idle.
 
 mod card;
+mod design;
 mod edges;
 
 use std::cell::RefCell;
@@ -44,6 +45,8 @@ struct Card {
     unfolded: bool,
     /// Content node and the state it was built for.
     cache: Option<(gsk::RenderNode, (bool, bool, bool, bool))>,
+    /// The table's name, so a card finds its place again after an undo.
+    name: String,
 }
 
 impl Card {
@@ -67,6 +70,9 @@ impl Card {
 enum DragMode {
     Pan { pan_x: f64, pan_y: f64 },
     Card { index: usize, x: f64, y: f64 },
+    /// Design Mode: a key from column `column` of card `from`, drawn to the
+    /// pointer (world coordinates) until it is dropped on a card.
+    Link { from: usize, column: usize, to: (f64, f64) },
 }
 
 struct Drag {
@@ -104,6 +110,11 @@ pub struct State {
     pending: Option<Pending>,
     pinch_start: Option<f64>,
     layout_dirty: bool,
+    /// Design Mode: the schema is edited on the canvas.
+    design: bool,
+    /// Schemas before each design edit, and the ones undone.
+    undo: Vec<Schema>,
+    redo: Vec<Schema>,
 }
 
 impl Default for State {
@@ -128,6 +139,9 @@ impl Default for State {
             pending: None,
             pinch_start: None,
             layout_dirty: false,
+            design: false,
+            undo: Vec::new(),
+            redo: Vec::new(),
         }
     }
 }
@@ -194,6 +208,7 @@ struct Callbacks {
     focus: Vec<FocusFn>,
     view: Vec<Box<dyn Fn()>>,
     layout: Vec<Box<dyn Fn()>>,
+    schema_changed: Vec<Box<dyn Fn(Schema)>>,
 }
 
 mod imp {
@@ -341,8 +356,16 @@ impl Canvas {
                 if n == 2 {
                     let (wx, wy) = canvas.st().to_world(x, y);
                     let hit = canvas.st().hit(wx, wy);
-                    if let Some(name) = hit.and_then(|i| canvas.table_name(i)) {
-                        canvas.emit_open(&name);
+                    let design = canvas.st().design;
+                    match (design, hit) {
+                        (true, Some(i)) => canvas.edit_card(i),
+                        (true, None) => canvas.add_table_at(wx, wy),
+                        (false, Some(i)) => {
+                            if let Some(name) = canvas.table_name(i) {
+                                canvas.emit_open(&name);
+                            }
+                        }
+                        (false, None) => {}
                     }
                 }
             }
@@ -398,6 +421,8 @@ impl Canvas {
         let ctx = self.pango_context();
         {
             let mut st = self.st();
+            st.undo.clear();
+            st.redo.clear();
             st.cards.clear();
             st.focus = None;
             st.hover = None;
@@ -425,6 +450,7 @@ impl Canvas {
                     dim: Spring::new(1.0, params(motion::HOVER)).with_epsilon(0.002),
                     unfolded,
                     cache: None,
+                    name: t.name.clone(),
                 });
             }
             st.order = (0..st.cards.len()).collect();
@@ -837,12 +863,14 @@ impl Canvas {
         st.anchor = None;
         let (wx, wy) = st.to_world(x, y);
         let hit = if button == gdk::BUTTON_PRIMARY { st.hit(wx, wy) } else { None };
-        let mode = match hit {
-            Some(i) => {
+        let column = if st.design { hit.and_then(|i| st.column_at(i, wx, wy)) } else { None };
+        let mode = match (hit, column) {
+            (Some(i), Some(column)) => DragMode::Link { from: i, column, to: (wx, wy) },
+            (Some(i), None) => {
                 st.raise(i);
                 DragMode::Card { index: i, x: st.cards[i].x.value, y: st.cards[i].y.value }
             }
-            None => {
+            (None, _) => {
                 if button == gdk::BUTTON_SECONDARY {
                     return;
                 }
@@ -869,6 +897,7 @@ impl Canvas {
         while drag.samples.len() > 2 && now - drag.samples[0].0 > 90_000 {
             drag.samples.pop_front();
         }
+        let start = drag.start;
         match drag.mode {
             DragMode::Pan { pan_x, pan_y } => {
                 st.pan_x.set(pan_x + ox);
@@ -879,6 +908,12 @@ impl Canvas {
                 c.x.set(x + ox / z);
                 c.y.set(y + oy / z);
                 st.layout_dirty = true;
+            }
+            DragMode::Link { .. } => {
+                let w = st.to_world(start.0 + ox, start.1 + oy);
+                if let Some(Drag { mode: DragMode::Link { to, .. }, .. }) = st.drag.as_mut() {
+                    *to = w;
+                }
             }
         }
         drop(st);
@@ -907,6 +942,7 @@ impl Canvas {
                 }
             }
             DragMode::Card { .. } => self.save_soon(),
+            DragMode::Link { from, column, to } => self.link(from, column, to),
         }
         self.queue_draw();
     }
@@ -965,8 +1001,25 @@ impl Canvas {
     }
 
     fn on_key(&self, key: gdk::Key, mods: gdk::ModifierType) -> glib::Propagation {
+        if mods.contains(gdk::ModifierType::CONTROL_MASK) && self.st().design {
+            let redo = mods.contains(gdk::ModifierType::SHIFT_MASK);
+            match key {
+                gdk::Key::z | gdk::Key::Z if redo => self.redo(),
+                gdk::Key::z | gdk::Key::Z => self.undo(),
+                gdk::Key::y => self.redo(),
+                _ => return glib::Propagation::Proceed,
+            }
+            return glib::Propagation::Stop;
+        }
         if mods.intersects(gdk::ModifierType::CONTROL_MASK | gdk::ModifierType::ALT_MASK) {
             return glib::Propagation::Proceed;
+        }
+        if key == gdk::Key::Delete && self.st().design {
+            let focus = self.imp().state.borrow().focus;
+            if let Some(f) = focus {
+                self.remove_card(f);
+                return glib::Propagation::Stop;
+            }
         }
         let focus = self.imp().state.borrow().focus;
         let dir = match key {
@@ -1127,6 +1180,7 @@ impl Canvas {
             Some(Drag { mode: DragMode::Card { index, .. }, moved: true, .. }) => Some(*index),
             _ => None,
         };
+        design::draw_link(s, &st, &schema, p);
         let order = st.order.clone();
         let focus = st.focus;
         let show_inferred = st.show_inferred;

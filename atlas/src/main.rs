@@ -2,6 +2,7 @@ mod app;
 mod canvas;
 mod db;
 mod i18n;
+mod keyring;
 mod motion;
 mod palette;
 mod runtime;

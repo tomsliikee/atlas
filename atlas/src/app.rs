@@ -1,4 +1,4 @@
-//! The application object: one window, the shortcuts.
+//! The application object: its windows, the shortcuts.
 
 use adw::prelude::*;
 use gtk::gio;
@@ -32,13 +32,18 @@ pub fn build() -> adw::Application {
             ("win.show-inferred", &["<Ctrl>i"]),
             ("win.minimap", &["<Ctrl>m"]),
             ("app.quit", &["<Ctrl>q"]),
+            ("app.new-window", &["<Ctrl><Shift>n"]),
         ] {
             app.set_accels_for_action(action, keys);
         }
         let quit = gio::ActionEntry::builder("quit")
             .activate(|app: &adw::Application, _, _| app.quit())
             .build();
-        app.add_action_entries([quit]);
+        // Another window with its own connection; each window is whole.
+        let new_window = gio::ActionEntry::builder("new-window")
+            .activate(|app: &adw::Application, _, _| ui::window::build(app).window.present())
+            .build();
+        app.add_action_entries([quit, new_window]);
     });
 
     app.connect_activate(|app| {

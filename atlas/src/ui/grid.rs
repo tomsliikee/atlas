@@ -11,12 +11,25 @@ use gtk::{gio, glib};
 
 pub type Row = Rc<Vec<Option<String>>>;
 
+/// How a cell shows pending edits.
+pub enum CellState {
+    Plain,
+    /// Changed but not committed: the new value.
+    Changed(Option<String>),
+    /// The row is marked for deletion.
+    Deleted,
+}
+
+type StateFn = Box<dyn Fn(&Row, usize) -> CellState>;
+
 #[derive(Default)]
 struct Hooks {
     sort: Option<Box<dyn Fn(Option<Sort>)>>,
     more: Option<Box<dyn Fn()>>,
     link: Option<Box<dyn Fn(usize, String)>>,
     selected: Option<Box<dyn Fn(Option<Row>)>>,
+    state: Option<StateFn>,
+    activate: Option<Box<dyn Fn(Row, usize)>>,
 }
 
 #[derive(Clone)]
@@ -113,6 +126,44 @@ impl Grid {
         self.hooks.borrow_mut().selected = Some(Box::new(f));
     }
 
+    /// How cells look while edits are pending.
+    pub fn on_state(&self, f: impl Fn(&Row, usize) -> CellState + 'static) {
+        self.hooks.borrow_mut().state = Some(Box::new(f));
+    }
+
+    /// A double click on a cell: the row and the column index.
+    pub fn on_activate(&self, f: impl Fn(Row, usize) + 'static) {
+        self.hooks.borrow_mut().activate = Some(Box::new(f));
+    }
+
+    /// Draws every row again, after pending edits changed.
+    pub fn refresh(&self) {
+        let n = self.store.n_items();
+        self.store.items_changed(0, n, n);
+    }
+
+    /// Selects only `row`.
+    pub fn select(&self, row: &Row) {
+        for i in 0..self.store.n_items() {
+            if let Some(o) = self.store.item(i).and_then(|o| o.downcast::<glib::BoxedAnyObject>().ok())
+                && Rc::ptr_eq(&o.borrow::<Row>(), row)
+            {
+                self.selection.select_item(i, true);
+                return;
+            }
+        }
+    }
+
+    /// The selected rows themselves (not copies), in order.
+    pub fn selected(&self) -> Vec<Row> {
+        let bits = self.selection.selection();
+        (0..self.store.n_items())
+            .filter(|&i| bits.contains(i))
+            .filter_map(|i| self.store.item(i).and_then(|o| o.downcast::<glib::BoxedAnyObject>().ok()))
+            .map(|b| b.borrow::<Row>().clone())
+            .collect()
+    }
+
     pub fn columns(&self) -> Vec<String> {
         self.columns.borrow().clone()
     }
@@ -188,6 +239,20 @@ impl Grid {
                 .single_line_mode(true)
                 .css_classes(["cell"])
                 .build();
+            let double = gtk::GestureClick::new();
+            let (h, weak) = (hooks.clone(), item.downgrade());
+            double.connect_pressed(move |g, n, _, _| {
+                if n != 2 {
+                    return;
+                }
+                let Some(item) = weak.upgrade() else { return };
+                let Some(row) = item.item().and_then(|o| o.downcast::<glib::BoxedAnyObject>().ok()) else { return };
+                if let Some(f) = &h.borrow().activate {
+                    g.set_state(gtk::EventSequenceState::Claimed);
+                    f(row.borrow::<Row>().clone(), index);
+                }
+            });
+            label.add_controller(double);
             if link {
                 label.add_css_class("link");
                 label.set_cursor_from_name(Some("pointer"));
@@ -209,11 +274,26 @@ impl Grid {
             }
             item.set_child(Some(&label));
         });
+        let hooks = self.hooks.clone();
         factory.connect_bind(move |_, item| {
             let Some(item) = item.downcast_ref::<gtk::ListItem>() else { return };
             let Some(label) = item.child().and_downcast::<gtk::Label>() else { return };
             let Some(row) = item.item().and_then(|o| o.downcast::<glib::BoxedAnyObject>().ok()) else { return };
-            let value = row.borrow::<Row>().get(index).cloned().flatten();
+            let row = row.borrow::<Row>().clone();
+            let state = hooks.borrow().state.as_ref().map_or(CellState::Plain, |f| f(&row, index));
+            label.remove_css_class("changed");
+            label.remove_css_class("deleted");
+            let value = match state {
+                CellState::Plain => row.get(index).cloned().flatten(),
+                CellState::Changed(v) => {
+                    label.add_css_class("changed");
+                    v
+                }
+                CellState::Deleted => {
+                    label.add_css_class("deleted");
+                    row.get(index).cloned().flatten()
+                }
+            };
             match value {
                 Some(v) => {
                     // One line in the grid; the detail pane shows all of it.

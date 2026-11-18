@@ -214,8 +214,10 @@ pub fn edit(parent: &impl IsA<gtk::Widget>, existing: Option<&Connection>, done:
         dialog,
         move |_| {
             let conn = form.connection();
+            let password = form.password.text().to_string();
             dialog.close();
-            done(conn, form.password.text().to_string());
+            remember_secret(&conn, &password);
+            done(conn, password);
         }
     ));
     dialog.present(Some(parent));
@@ -363,10 +365,41 @@ pub fn failed(
 
 /// Asks for the password of a saved connection.
 pub fn password(parent: &impl IsA<gtk::Widget>, conn: &Connection, done: impl Fn(String) + 'static) {
+    if conn.keyring {
+        // The keyring first; ask only when it has nothing.
+        let (id, parent, conn, done) = (conn.id.clone(), parent.clone().upcast::<gtk::Widget>(), conn.clone(), Rc::new(done));
+        glib::spawn_future_local(async move {
+            match runtime::run(crate::keyring::load(id)).await {
+                Some(p) => done(p),
+                None => ask_password(&parent, &conn, move |p| done(p)),
+            }
+        });
+        return;
+    }
+    ask_password(parent, conn, done);
+}
+
+/// Keeps or forgets the password in the keyring, as the connection says.
+fn remember_secret(conn: &Connection, password: &str) {
+    let (id, label, password, keep) = (conn.id.clone(), conn.name.clone(), password.to_owned(), conn.keyring);
+    glib::spawn_future_local(async move {
+        if keep && !password.is_empty() {
+            let _ = runtime::run(crate::keyring::store(id, label, password)).await;
+        } else if !keep {
+            runtime::run(crate::keyring::forget(id)).await;
+        }
+    });
+}
+
+fn ask_password(parent: &impl IsA<gtk::Widget>, conn: &Connection, done: impl Fn(String) + 'static) {
     let entry = gtk::PasswordEntry::builder().show_peek_icon(true).activates_default(true).build();
     let dialog = adw::AlertDialog::builder()
         .heading(&conn.name)
-        .body(tr("Password for {user}. It is not saved.").replace("{user}", &conn.subtitle()))
+        .body(if conn.keyring {
+            tr("Password for {user}. It is kept in the keyring.").replace("{user}", &conn.subtitle())
+        } else {
+            tr("Password for {user}. It is not saved.").replace("{user}", &conn.subtitle())
+        })
         .extra_child(&entry)
         .default_response("connect")
         .close_response("cancel")
@@ -374,9 +407,14 @@ pub fn password(parent: &impl IsA<gtk::Widget>, conn: &Connection, done: impl Fn
     dialog.add_responses(&[("cancel", &tr("Cancel")), ("connect", &tr("Connect"))]);
     dialog.set_response_appearance("connect", adw::ResponseAppearance::Suggested);
     let field = entry.clone();
+    let conn = conn.clone();
     dialog.connect_response(None, move |_, response| {
         if response == "connect" {
-            done(field.text().to_string());
+            let password = field.text().to_string();
+            if conn.keyring {
+                remember_secret(&conn, &password);
+            }
+            done(password);
         }
     });
     dialog.present(Some(parent));
