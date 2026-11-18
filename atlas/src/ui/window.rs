@@ -388,6 +388,8 @@ impl Win {
                     database: database.into(),
                     socket: None,
                     ssh: None,
+                    writable: false,
+                    keyring: false,
                 };
                 win.open_server(conn, String::new());
             }

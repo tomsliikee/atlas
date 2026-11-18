@@ -1,8 +1,10 @@
 //! Adding or editing a server connection, asking for its password, and
 //! saying in plain words why a connection failed.
 //!
-//! Passwords are never stored: the field says so, and the dialog for a
-//! saved connection asks every time.
+//! Passwords are not stored unless the user turns on "Remember in the
+//! keyring" for that connection; then the desktop keyring keeps them, never
+//! Atlas' own files. Otherwise the dialog for a saved connection asks every
+//! time.
 
 use std::rc::Rc;
 
@@ -37,6 +39,8 @@ struct Form {
     ssh_host: adw::EntryRow,
     ssh_user: adw::EntryRow,
     ssh_port: adw::EntryRow,
+    writable: adw::SwitchRow,
+    keyring: adw::SwitchRow,
 }
 
 impl Form {
@@ -63,6 +67,8 @@ impl Form {
                     port: self.ssh_port.text().trim().parse().ok(),
                 })
                 .filter(|s| !s.host.is_empty()),
+            writable: self.writable.is_active(),
+            keyring: self.keyring.is_active(),
         }
     }
 }
@@ -82,7 +88,7 @@ pub fn edit(parent: &impl IsA<gtk::Widget>, existing: Option<&Connection>, done:
         port: entry(&tr("Port"), &text(&|c| c.port.to_string(), "3306")),
         user: entry(&tr("User"), &text(&|c| c.user.clone(), "")),
         database: entry(&tr("Database name"), &text(&|c| c.database.clone(), "")),
-        password: adw::PasswordEntryRow::builder().title(tr("Password (not saved)")).build(),
+        password: adw::PasswordEntryRow::builder().title(tr("Password")).build(),
         socket: entry(&tr("Unix socket (optional)"), &text(&|c| c.socket.clone().unwrap_or_default(), "")),
         ssh: adw::ExpanderRow::builder()
             .title(tr("SSH tunnel"))
@@ -96,6 +102,16 @@ pub fn edit(parent: &impl IsA<gtk::Widget>, existing: Option<&Connection>, done:
             &tr("SSH port (optional)"),
             &text(&|c| c.ssh.as_ref().and_then(|s| s.port).map(|p| p.to_string()).unwrap_or_default(), ""),
         ),
+        writable: adw::SwitchRow::builder()
+            .title(tr("Allow changes"))
+            .subtitle(tr("Off: Atlas opens the session read-only and the server refuses every write"))
+            .active(c.as_ref().is_some_and(|c| c.writable))
+            .build(),
+        keyring: adw::SwitchRow::builder()
+            .title(tr("Remember password in the keyring"))
+            .subtitle(tr("Off: the password is asked for every time and kept nowhere"))
+            .active(c.as_ref().is_some_and(|c| c.keyring))
+            .build(),
     };
     form.port.set_input_purpose(gtk::InputPurpose::Digits);
     if let Some(c) = &c {
@@ -153,11 +169,15 @@ pub fn edit(parent: &impl IsA<gtk::Widget>, existing: Option<&Connection>, done:
     ] {
         server.add(row);
     }
-    let more = adw::PreferencesGroup::builder().description(tr("Atlas opens every session read-only.")).build();
+    let safety = adw::PreferencesGroup::new();
+    safety.add(&form.writable);
+    safety.add(&form.keyring);
+    let more = adw::PreferencesGroup::new();
     more.add(&form.socket);
     more.add(&form.ssh);
     let page = adw::PreferencesPage::new();
     page.add(&server);
+    page.add(&safety);
     page.add(&more);
 
     let connect = gtk::Button::builder().label(tr("Connect")).css_classes(["suggested-action"]).build();
@@ -171,7 +191,7 @@ pub fn edit(parent: &impl IsA<gtk::Widget>, existing: Option<&Connection>, done:
     let dialog = adw::Dialog::builder()
         .title(if c.is_some() { tr("Edit Connection") } else { tr("New Connection") })
         .content_width(460)
-        .content_height(640)
+        .content_height(720)
         .child(&toolbar)
         .default_widget(&connect)
         .build();

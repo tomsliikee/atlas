@@ -41,6 +41,90 @@ pub fn literal(dialect: Dialect, value: &str) -> String {
     }
 }
 
+/// A string literal meant to be read by a person or written to a file:
+/// plain quotes instead of the hex form `literal` uses for MariaDB.
+pub fn quoted(dialect: Dialect, value: &str) -> String {
+    if dialect == Dialect::MySql {
+        format!("'{}'", value.replace('\\', "\\\\").replace('\'', "''"))
+    } else {
+        format!("'{}'", value.replace('\'', "''"))
+    }
+}
+
+/// True for types whose values Atlas shows as `0x…` hex.
+pub fn is_binary_type(data_type: &str) -> bool {
+    let t = data_type.to_ascii_lowercase();
+    t.contains("blob") || t.contains("binary") || t == "bytea" || t.starts_with("bit")
+}
+
+/// A value for a file or for display, as the column's type wants it:
+/// binary shown as `0x…` goes back as a hex literal.
+pub fn value_literal(dialect: Dialect, data_type: &str, value: &str) -> String {
+    if is_binary_type(data_type)
+        && let Some(hex) = value.strip_prefix("0x")
+        && hex.len() % 2 == 0
+        && hex.bytes().all(|b| b.is_ascii_hexdigit())
+    {
+        return match dialect {
+            Dialect::MySql | Dialect::Sqlite => format!("X'{hex}'"),
+            Dialect::Postgres => format!("'\\x{hex}'::bytea"),
+        };
+    }
+    quoted(dialect, value)
+}
+
+/// One INSERT with many rows, for backups. `types` may be empty.
+pub fn insert_batch(
+    dialect: Dialect,
+    table: &str,
+    columns: &[String],
+    types: &[String],
+    rows: &[Vec<Option<String>>],
+) -> String {
+    let cols: Vec<String> = columns.iter().map(|c| ident(dialect, c)).collect();
+    let mut out = format!("INSERT INTO {} ({}) VALUES\n", ident(dialect, table), cols.join(", "));
+    for (n, row) in rows.iter().enumerate() {
+        out.push_str(if n == 0 { "  (" } else { ",\n  (" });
+        for (i, v) in row.iter().enumerate() {
+            if i > 0 {
+                out.push_str(", ");
+            }
+            match v {
+                Some(v) => out.push_str(&value_literal(dialect, types.get(i).map_or("", String::as_str), v)),
+                None => out.push_str("NULL"),
+            }
+        }
+        out.push(')');
+    }
+    out.push_str(";\n");
+    out
+}
+
+/// Rows as a JSON array of objects, keys in column order.
+pub fn json(columns: &[String], rows: &[Vec<Option<String>>]) -> String {
+    let mut out = String::from("[\n");
+    for (n, row) in rows.iter().enumerate() {
+        if n > 0 {
+            out.push_str(",\n");
+        }
+        out.push_str("  {");
+        for (i, c) in columns.iter().enumerate() {
+            if i > 0 {
+                out.push_str(", ");
+            }
+            out.push_str(&serde_json::to_string(c).unwrap_or_default());
+            out.push_str(": ");
+            match row.get(i).and_then(Option::as_ref) {
+                Some(v) => out.push_str(&serde_json::to_string(v).unwrap_or_default()),
+                None => out.push_str("null"),
+            }
+        }
+        out.push('}');
+    }
+    out.push_str("\n]\n");
+    out
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Op {
     Contains,
@@ -174,14 +258,7 @@ pub fn inserts(dialect: Dialect, table: &str, columns: &[String], rows: &[Vec<Op
             match v {
                 // Plain quoting here, not the hex form: the text is meant to
                 // be read and pasted by a person.
-                Some(v) => {
-                    let quoted = if dialect == Dialect::MySql {
-                        format!("'{}'", v.replace('\\', "\\\\").replace('\'', "''"))
-                    } else {
-                        format!("'{}'", v.replace('\'', "''"))
-                    };
-                    out.push_str(&quoted);
-                }
+                Some(v) => out.push_str(&quoted(dialect, v)),
                 None => out.push_str("NULL"),
             }
         }
@@ -229,6 +306,24 @@ mod tests {
     fn csv_quotes_only_when_needed() {
         let out = csv(&["a".into(), "b".into()], &[vec![Some("x,y".into()), None], vec![Some("say \"hi\"".into()), Some("1".into())]]);
         assert_eq!(out, "a,b\r\n\"x,y\",\r\n\"say \"\"hi\"\"\",1\r\n");
+    }
+
+    #[test]
+    fn batches_turn_hex_back_into_bytes() {
+        let out = insert_batch(
+            Dialect::Postgres,
+            "t",
+            &["a".into(), "b".into()],
+            &["bytea".into(), "text".into()],
+            &[vec![Some("0x00ff".into()), Some("0x00ff".into())], vec![None, Some("x'y".into())]],
+        );
+        assert_eq!(out, "INSERT INTO \"t\" (\"a\", \"b\") VALUES\n  ('\\x00ff'::bytea, '0x00ff'),\n  (NULL, 'x''y');\n");
+    }
+
+    #[test]
+    fn json_rows() {
+        let out = json(&["a".into(), "b".into()], &[vec![Some("x\"".into()), None]]);
+        assert_eq!(out, "[\n  {\"a\": \"x\\\"\", \"b\": null}\n]\n");
     }
 
     #[test]

@@ -10,6 +10,9 @@ pub struct Schema {
     pub name: String,
     pub tables: Vec<Table>,
     pub relations: Vec<Relation>,
+    /// Stored procedures and functions.
+    #[serde(default)]
+    pub routines: Vec<Routine>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -23,6 +26,100 @@ pub struct Table {
     pub rows: Option<u64>,
     pub rows_estimated: bool,
     pub comment: Option<String>,
+    /// Every index except the primary key, unique ones included.
+    #[serde(default)]
+    pub indexes: Vec<Index>,
+    #[serde(default)]
+    pub checks: Vec<Check>,
+    #[serde(default)]
+    pub triggers: Vec<Trigger>,
+    /// The SELECT behind a view, as the server prints it.
+    #[serde(default)]
+    pub definition: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Index {
+    pub name: String,
+    /// Column names, or the expression text for an expression index.
+    pub columns: Vec<String>,
+    pub unique: bool,
+    /// `btree`, `hash`, `gin`, `fulltext`… as the server names it; empty
+    /// when unknown.
+    #[serde(default)]
+    pub kind: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Check {
+    pub name: Option<String>,
+    /// The condition without the surrounding `CHECK (…)`.
+    pub expr: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Trigger {
+    pub name: String,
+    /// `BEFORE`, `AFTER` or `INSTEAD OF`.
+    pub timing: String,
+    /// `INSERT`, `UPDATE`, `DELETE`, or several joined by ` OR `.
+    pub event: String,
+    /// The full statement or body as the server keeps it.
+    pub body: String,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RoutineKind {
+    #[default]
+    Procedure,
+    Function,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Routine {
+    pub name: String,
+    pub kind: RoutineKind,
+    /// The full `CREATE …` text when the server hands it out, else the body.
+    pub definition: String,
+}
+
+/// What a foreign key does when its parent row is deleted or updated.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FkAction {
+    NoAction,
+    Restrict,
+    Cascade,
+    SetNull,
+    SetDefault,
+}
+
+impl FkAction {
+    pub const ALL: [FkAction; 5] =
+        [FkAction::NoAction, FkAction::Restrict, FkAction::Cascade, FkAction::SetNull, FkAction::SetDefault];
+
+    pub fn sql(self) -> &'static str {
+        match self {
+            FkAction::NoAction => "NO ACTION",
+            FkAction::Restrict => "RESTRICT",
+            FkAction::Cascade => "CASCADE",
+            FkAction::SetNull => "SET NULL",
+            FkAction::SetDefault => "SET DEFAULT",
+        }
+    }
+
+    /// Reads `CASCADE`, `set null`, `SET_NULL`, and PostgreSQL's one-letter
+    /// codes (`a r c n d`).
+    pub fn parse(text: &str) -> Option<FkAction> {
+        let t = text.trim().to_ascii_uppercase().replace('_', " ");
+        Some(match t.as_str() {
+            "NO ACTION" | "A" => FkAction::NoAction,
+            "RESTRICT" | "R" => FkAction::Restrict,
+            "CASCADE" | "C" => FkAction::Cascade,
+            "SET NULL" | "N" => FkAction::SetNull,
+            "SET DEFAULT" | "D" => FkAction::SetDefault,
+            _ => return None,
+        })
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -41,18 +138,29 @@ pub struct Column {
     pub primary: bool,
     pub default: Option<String>,
     pub comment: Option<String>,
+    /// The allowed values of an ENUM column (MariaDB `enum(…)`, PostgreSQL
+    /// enum types).
+    #[serde(default)]
+    pub enum_values: Option<Vec<String>>,
+    /// The expression of a generated (computed) column.
+    #[serde(default)]
+    pub generated: Option<String>,
+    /// AUTO_INCREMENT, SERIAL/IDENTITY, or SQLite's INTEGER PRIMARY KEY rowid.
+    #[serde(default)]
+    pub auto_increment: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RelationKind {
     /// A declared foreign key.
+    #[default]
     Declared,
     /// Guessed from names (`kunde_id` → `kunden.id`), drawn dashed.
     Inferred,
 }
 
 /// `from` (the child, holding the foreign key) refers to `to` (the parent).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Relation {
     pub name: Option<String>,
     pub from_table: String,
@@ -60,6 +168,10 @@ pub struct Relation {
     pub to_table: String,
     pub to_columns: Vec<String>,
     pub kind: RelationKind,
+    #[serde(default)]
+    pub on_delete: Option<FkAction>,
+    #[serde(default)]
+    pub on_update: Option<FkAction>,
 }
 
 /// How many rows sit at one end of a relation, in crow's-foot terms.
@@ -68,6 +180,47 @@ pub enum End {
     ExactlyOne,
     ZeroOrOne,
     ZeroOrMany,
+}
+
+/// The values of a MariaDB/MySQL `enum('a','b')` or `set(…)` type, quotes
+/// undoubled. None for any other type.
+pub fn enum_values(data_type: &str) -> Option<Vec<String>> {
+    let t = data_type.trim();
+    let lower = t.to_ascii_lowercase();
+    let inner = if lower.starts_with("enum(") {
+        &t[5..]
+    } else if lower.starts_with("set(") {
+        &t[4..]
+    } else {
+        return None;
+    };
+    let inner = inner.strip_suffix(')')?;
+    let mut out = Vec::new();
+    let mut chars = inner.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c != '\'' {
+            continue;
+        }
+        let mut v = String::new();
+        while let Some(c) = chars.next() {
+            if c == '\'' {
+                if chars.peek() == Some(&'\'') {
+                    chars.next();
+                    v.push('\'');
+                } else {
+                    break;
+                }
+            } else if c == '\\' {
+                if let Some(n) = chars.next() {
+                    v.push(n);
+                }
+            } else {
+                v.push(c);
+            }
+        }
+        out.push(v);
+    }
+    Some(out)
 }
 
 impl Table {
@@ -87,6 +240,18 @@ impl Table {
             .collect()
     }
 
+    /// The columns that identify a row for UPDATE/DELETE: the primary key,
+    /// else the first unique set whose columns are all NOT NULL.
+    pub fn row_key(&self) -> Option<Vec<String>> {
+        let pk = self.primary_key();
+        if !pk.is_empty() {
+            return Some(pk.into_iter().map(str::to_owned).collect());
+        }
+        let sets = self.unique.iter().cloned().chain(self.indexes.iter().filter(|i| i.unique).map(|i| i.columns.clone()));
+        sets.into_iter()
+            .find(|set| !set.is_empty() && set.iter().all(|c| self.column(c).is_some_and(|c| !c.nullable)))
+    }
+
     /// True when exactly these columns (in any order) are unique together.
     pub fn is_unique(&self, columns: &[String]) -> bool {
         let mut wanted: Vec<&str> = columns.iter().map(String::as_str).collect();
@@ -99,7 +264,7 @@ impl Table {
         if !pk.is_empty() && pk == wanted {
             return true;
         }
-        self.unique.iter().any(|set| {
+        self.unique.iter().chain(self.indexes.iter().filter(|i| i.unique).map(|i| &i.columns)).any(|set| {
             let mut set: Vec<&str> = set.iter().map(String::as_str).collect();
             set.sort_unstable();
             set == wanted
@@ -207,7 +372,7 @@ pub(crate) mod fixture {
             from_columns: vec![fc.into()],
             to_table: to.into(),
             to_columns: vec![tc.into()],
-            kind: RelationKind::Declared,
+            ..Default::default()
         }
     }
 
@@ -249,6 +414,7 @@ pub(crate) mod fixture {
                 fk("order_lines", "product_id", "products", "id"),
                 fk("profiles", "customer_id", "customers", "id"),
             ],
+            ..Default::default()
         }
     }
 }
@@ -273,6 +439,31 @@ mod tests {
         let mut n = s.neighbours("orders", true);
         n.sort_unstable();
         assert_eq!(n, ["customers", "order_lines"]);
+    }
+
+    #[test]
+    fn enum_values_are_unquoted() {
+        assert_eq!(enum_values("enum('a','it''s','b,c')").unwrap(), ["a", "it's", "b,c"]);
+        assert_eq!(enum_values("SET('x')").unwrap(), ["x"]);
+        assert_eq!(enum_values("varchar(3)"), None);
+    }
+
+    #[test]
+    fn row_key_falls_back_to_a_not_null_unique_set() {
+        let mut t = fixture::table("t", vec![fixture::col("a", "int", true, false), fixture::col("b", "int", false, false)]);
+        assert_eq!(t.row_key(), None);
+        t.indexes.push(Index { name: "u_a".into(), columns: vec!["a".into()], unique: true, kind: String::new() });
+        assert_eq!(t.row_key(), None, "nullable column cannot identify a row");
+        t.indexes.push(Index { name: "u_b".into(), columns: vec!["b".into()], unique: true, kind: String::new() });
+        assert_eq!(t.row_key().unwrap(), ["b"]);
+    }
+
+    #[test]
+    fn fk_actions_parse_names_and_pg_codes() {
+        assert_eq!(FkAction::parse("set null"), Some(FkAction::SetNull));
+        assert_eq!(FkAction::parse("c"), Some(FkAction::Cascade));
+        assert_eq!(FkAction::parse("NO_ACTION"), Some(FkAction::NoAction));
+        assert_eq!(FkAction::parse("x"), None);
     }
 
     #[test]

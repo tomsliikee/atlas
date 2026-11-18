@@ -83,6 +83,7 @@ pub fn infer(schema: &mut Schema) -> usize {
                 to_table: target.name.clone(),
                 to_columns: vec![pk[0].to_owned()],
                 kind: RelationKind::Inferred,
+                ..Default::default()
             });
         }
     }
@@ -114,6 +115,7 @@ mod tests {
                 ),
             ],
             relations: vec![],
+            ..Default::default()
         }
     }
 

@@ -26,6 +26,14 @@ pub struct Connection {
     pub socket: Option<String>,
     #[serde(default)]
     pub ssh: Option<Ssh>,
+    /// Opened read-write. Off unless the user turns it on for this
+    /// connection.
+    #[serde(default)]
+    pub writable: bool,
+    /// The secret lives in the desktop keyring (Secret portal), never in
+    /// this file. Off unless the user turns it on.
+    #[serde(default)]
+    pub keyring: bool,
 }
 
 /// An SSH tunnel through the system's `ssh`, so `~/.ssh/config`, the agent
@@ -101,6 +109,43 @@ impl History {
     }
 }
 
+/// A query the user named and kept, per database.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct SavedQuery {
+    pub name: String,
+    pub sql: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Saved {
+    pub queries: Vec<SavedQuery>,
+}
+
+impl Saved {
+    /// Adds or replaces the query of that name.
+    pub fn put(&mut self, name: &str, sql: &str) {
+        let (name, sql) = (name.trim(), sql.trim());
+        if name.is_empty() || sql.is_empty() {
+            return;
+        }
+        self.queries.retain(|q| q.name != name);
+        self.queries.push(SavedQuery { name: name.to_owned(), sql: sql.to_owned() });
+        self.queries.sort_by_key(|q| q.name.to_lowercase());
+    }
+
+    pub fn remove(&mut self, name: &str) {
+        self.queries.retain(|q| q.name != name);
+    }
+}
+
+/// The text of the console's open tabs, per database.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Tabs {
+    pub tabs: Vec<String>,
+    #[serde(default)]
+    pub selected: usize,
+}
+
 /// A file name from any key (a connection id, a file path).
 pub fn key_file(key: &str) -> String {
     // FNV-1a: stable across runs and Rust versions, unlike DefaultHasher.
@@ -159,9 +204,29 @@ mod tests {
             database: "d".into(),
             socket: None,
             ssh: None,
+            writable: true,
+            keyring: true,
         };
         let json = serde_json::to_string(&c).unwrap();
         assert!(!json.contains("password"));
+    }
+
+    #[test]
+    fn old_connections_stay_read_only() {
+        let c: Connection = serde_json::from_str(
+            r#"{"id":"1","name":"x","dialect":"MySql","host":"h","port":1,"user":"u","database":"d"}"#,
+        )
+        .unwrap();
+        assert!(!c.writable && !c.keyring);
+    }
+
+    #[test]
+    fn saved_queries_replace_by_name() {
+        let mut s = Saved::default();
+        s.put("b", "SELECT 2");
+        s.put("a", "SELECT 1");
+        s.put("b", "SELECT 3");
+        assert_eq!(s.queries.iter().map(|q| (q.name.as_str(), q.sql.as_str())).collect::<Vec<_>>(), [("a", "SELECT 1"), ("b", "SELECT 3")]);
     }
 
     #[test]

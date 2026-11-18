@@ -7,12 +7,13 @@
 //! make up most of a dump are never parsed.
 
 use sqlparser::ast::{
-    AlterTableOperation, ColumnOption, CreateTable, Expr, Ident, IndexColumn, ObjectName, Statement, TableConstraint,
+    AlterTableOperation, ColumnOption, CreateIndex, CreateTable, DataType, Expr, Ident, IndexColumn, ObjectName,
+    ReferentialAction, Statement, TableConstraint,
 };
 use sqlparser::dialect::{GenericDialect, MySqlDialect, PostgreSqlDialect, SQLiteDialect};
 use sqlparser::parser::Parser;
 
-use crate::schema::{Column, Relation, RelationKind, Schema, Table};
+use crate::schema::{Check, Column, FkAction, Index, Relation, RelationKind, Schema, Table, TableKind, enum_values};
 
 #[derive(Debug, Default, PartialEq)]
 pub struct Report {
@@ -23,6 +24,20 @@ pub struct Report {
 
 /// Cuts `text` into statements and returns the ones that shape tables.
 pub fn statements(text: &str) -> Vec<String> {
+    split(text).statements.into_iter().filter(|s| is_structure(&s.to_ascii_uppercase())).collect()
+}
+
+/// Every statement of a script, for running it. Comments go; pg_dump's
+/// `COPY … FROM stdin` blocks cannot be sent as SQL and are counted
+/// instead.
+#[derive(Debug, Default, PartialEq)]
+pub struct Split {
+    pub statements: Vec<String>,
+    pub copy_blocks: usize,
+}
+
+pub fn split(text: &str) -> Split {
+    let mut copy_blocks = 0;
     let bytes = text.as_bytes();
     let mut out = Vec::new();
     let mut current = String::new();
@@ -95,9 +110,10 @@ pub fn statements(text: &str) -> Vec<String> {
             if upper.starts_with("COPY ") && upper.ends_with("FROM STDIN") {
                 let after = &text[i..];
                 i += after.find("\n\\.").map_or(after.len(), |n| n + 3);
+                copy_blocks += 1;
                 continue;
             }
-            if is_structure(&upper) {
+            if !statement.is_empty() {
                 out.push(statement);
             }
             continue;
@@ -107,10 +123,10 @@ pub fn statements(text: &str) -> Vec<String> {
         i += ch.len_utf8();
     }
     let last = current.trim();
-    if is_structure(&last.to_ascii_uppercase()) {
+    if !last.is_empty() {
         out.push(last.to_owned());
     }
-    out
+    Split { statements: out, copy_blocks }
 }
 
 fn is_structure(upper: &str) -> bool {
@@ -122,6 +138,20 @@ fn is_structure(upper: &str) -> bool {
         || starts(&["CREATE", "OR", "REPLACE", "TABLE"])
         || starts(&["ALTER", "TABLE"]))
         && !upper.contains(" AS SELECT ")
+        || starts(&["CREATE", "INDEX"])
+        || starts(&["CREATE", "UNIQUE", "INDEX"])
+        || starts(&["CREATE", "VIEW"])
+        || starts(&["CREATE", "OR", "REPLACE", "VIEW"])
+}
+
+fn action(a: &Option<ReferentialAction>) -> Option<FkAction> {
+    a.as_ref().map(|a| match a {
+        ReferentialAction::Restrict => FkAction::Restrict,
+        ReferentialAction::Cascade => FkAction::Cascade,
+        ReferentialAction::SetNull => FkAction::SetNull,
+        ReferentialAction::NoAction => FkAction::NoAction,
+        ReferentialAction::SetDefault => FkAction::SetDefault,
+    })
 }
 
 fn parse_one(sql: &str) -> Option<Statement> {
@@ -172,6 +202,17 @@ pub fn parse(name: &str, text: &str) -> (Schema, Report) {
                     }
                 }
             }
+            Some(Statement::CreateIndex(index)) => create_index(&mut schema, &index),
+            Some(Statement::CreateView(view)) => {
+                let name = last_name(&view.name);
+                schema.tables.retain(|t| t.name != name);
+                schema.tables.push(Table {
+                    name,
+                    kind: TableKind::View,
+                    definition: Some(view.query.to_string()),
+                    ..Default::default()
+                });
+            }
             Some(_) => {}
             None => report.skipped.push(sql.lines().next().unwrap_or("").chars().take(120).collect()),
         }
@@ -196,9 +237,17 @@ fn create_table(schema: &mut Schema, create: &CreateTable) {
     let name = last_name(&create.name);
     let mut table = Table { name: name.clone(), ..Default::default() };
     for def in &create.columns {
+        let data_type = def.data_type.to_string();
         let mut column = Column {
             name: def.name.value.clone(),
-            data_type: def.data_type.to_string().to_lowercase(),
+            enum_values: enum_values(&data_type),
+            auto_increment: matches!(data_type.to_ascii_lowercase().as_str(), "serial" | "bigserial" | "smallserial"),
+            // Keep the spelling of enum values; lowercase the type keywords.
+            data_type: if matches!(def.data_type, DataType::Enum(..) | DataType::Set(..)) {
+                data_type
+            } else {
+                data_type.to_lowercase()
+            },
             nullable: true,
             ..Default::default()
         };
@@ -220,7 +269,19 @@ fn create_table(schema: &mut Schema, create: &CreateTable) {
                     to_table: last_name(&fk.foreign_table),
                     to_columns: idents(&fk.referred_columns),
                     kind: RelationKind::Declared,
+                    on_delete: action(&fk.on_delete),
+                    on_update: action(&fk.on_update),
                 }),
+                ColumnOption::Check(c) => table.checks.push(Check {
+                    name: c.name.as_ref().map(|n| n.value.clone()),
+                    expr: c.expr.to_string(),
+                }),
+                ColumnOption::Generated { generation_expr: Some(e), .. } => column.generated = Some(e.to_string()),
+                ColumnOption::DialectSpecific(tokens)
+                    if tokens.iter().any(|t| t.to_string().eq_ignore_ascii_case("AUTO_INCREMENT") || t.to_string().eq_ignore_ascii_case("AUTOINCREMENT")) =>
+                {
+                    column.auto_increment = true;
+                }
                 _ => {}
             }
         }
@@ -244,7 +305,29 @@ fn apply_constraint(schema: &mut Schema, table_name: &str, constraint: &TableCon
                 }
             }
         }
-        TableConstraint::Unique(u) => table.unique.push(u.columns.iter().map(index_column).collect()),
+        TableConstraint::Unique(u) => {
+            let columns: Vec<String> = u.columns.iter().map(index_column).collect();
+            let name = u.index_name.as_ref().or(u.name.as_ref()).map(|n| n.value.clone());
+            match name {
+                Some(name) => table.indexes.push(Index { name, columns, unique: true, kind: String::new() }),
+                None => table.unique.push(columns),
+            }
+        }
+        TableConstraint::Index(i) => table.indexes.push(Index {
+            name: i.name.as_ref().map(|n| n.value.clone()).unwrap_or_default(),
+            columns: i.columns.iter().map(index_column).collect(),
+            unique: false,
+            kind: i.index_type.as_ref().map(|t| t.to_string().to_lowercase()).unwrap_or_default(),
+        }),
+        TableConstraint::FulltextOrSpatial(i) => table.indexes.push(Index {
+            name: i.opt_index_name.as_ref().map(|n| n.value.clone()).unwrap_or_default(),
+            columns: i.columns.iter().map(index_column).collect(),
+            unique: false,
+            kind: if i.fulltext { "fulltext".into() } else { "spatial".into() },
+        }),
+        TableConstraint::Check(c) => {
+            table.checks.push(Check { name: c.name.as_ref().map(|n| n.value.clone()), expr: c.expr.to_string() });
+        }
         TableConstraint::ForeignKey(fk) => schema.relations.push(Relation {
             name: fk.name.as_ref().map(|n| n.value.clone()),
             from_table: table_name.to_owned(),
@@ -252,9 +335,22 @@ fn apply_constraint(schema: &mut Schema, table_name: &str, constraint: &TableCon
             to_table: last_name(&fk.foreign_table),
             to_columns: idents(&fk.referred_columns),
             kind: RelationKind::Declared,
+            on_delete: action(&fk.on_delete),
+            on_update: action(&fk.on_update),
         }),
         _ => {}
     }
+}
+
+fn create_index(schema: &mut Schema, index: &CreateIndex) {
+    let table_name = last_name(&index.table_name);
+    let Some(table) = schema.tables.iter_mut().find(|t| t.name == table_name) else { return };
+    table.indexes.push(Index {
+        name: index.name.as_ref().map(last_name).unwrap_or_default(),
+        columns: index.columns.iter().map(index_column).collect(),
+        unique: index.unique,
+        kind: index.using.as_ref().map(|t| t.to_string().to_lowercase()).unwrap_or_default(),
+    });
 }
 
 #[cfg(test)]
@@ -312,6 +408,31 @@ ALTER TABLE ONLY public.books ADD CONSTRAINT books_author_fkey FOREIGN KEY (auth
         assert_eq!(s.relations.len(), 1);
         assert_eq!(s.relations[0].from_columns, ["kunde_id"]);
         assert_eq!(s.relations[0].to_table, "kunden");
+        assert_eq!(s.relations[0].on_delete, Some(FkAction::Cascade));
+        assert!(k.column("id").unwrap().auto_increment);
+        let b = s.table("bestellungen").unwrap();
+        assert_eq!(b.indexes.len(), 1);
+        assert_eq!(b.indexes[0].name, "kunde_id");
+        assert!(!b.indexes[0].unique);
+    }
+
+    #[test]
+    fn indexes_views_checks_and_enums() {
+        let (s, report) = parse(
+            "x",
+            "CREATE TABLE t (id int PRIMARY KEY, state enum('Neu','it''s') NOT NULL, n int CHECK (n > 0));\n\
+             CREATE UNIQUE INDEX t_n ON t (n);\n\
+             CREATE VIEW v AS SELECT id FROM t;",
+        );
+        assert!(report.skipped.is_empty(), "{:?}", report.skipped);
+        let t = s.table("t").unwrap();
+        assert_eq!(t.column("state").unwrap().enum_values.as_deref().unwrap(), ["Neu", "it's"]);
+        assert_eq!(t.checks.len(), 1);
+        assert_eq!(t.checks[0].expr, "n > 0");
+        assert_eq!(t.indexes, [Index { name: "t_n".into(), columns: vec!["n".into()], unique: true, kind: String::new() }]);
+        let v = s.table("v").unwrap();
+        assert_eq!(v.kind, TableKind::View);
+        assert_eq!(v.definition.as_deref(), Some("SELECT id FROM t"));
     }
 
     #[test]
@@ -322,6 +443,15 @@ ALTER TABLE ONLY public.books ADD CONSTRAINT books_author_fkey FOREIGN KEY (auth
         assert_eq!(s.table("books").unwrap().primary_key(), ["id"]);
         assert_eq!(s.relations.len(), 1);
         assert_eq!(s.relations[0].to_table, "authors");
+    }
+
+    #[test]
+    fn split_keeps_data_and_trigger_bodies() {
+        let s = split(MARIADB);
+        assert_eq!(s.copy_blocks, 0);
+        assert!(s.statements.iter().any(|x| x.starts_with("INSERT INTO `kunden`")));
+        assert!(s.statements.iter().any(|x| x.starts_with("CREATE TRIGGER") && x.contains("SET NEW.id = 1;")));
+        assert_eq!(split(PG).copy_blocks, 1);
     }
 
     #[test]

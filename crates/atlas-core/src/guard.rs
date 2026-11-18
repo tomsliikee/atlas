@@ -6,6 +6,10 @@
 //! that a write is refused with a clear sentence before it is sent, and so
 //! that a statement which would switch the session back to read-write
 //! (`SET SESSION TRANSACTION READ WRITE`) never gets through.
+//!
+//! A session the user opened for editing goes through [`classify`] instead:
+//! everything may run, but statements that destroy data are named so the
+//! console can ask first.
 
 use sqlparser::ast::Statement;
 use sqlparser::dialect::{MySqlDialect, PostgreSqlDialect, SQLiteDialect};
@@ -22,6 +26,89 @@ pub enum Refusal {
     Unparsed(String),
     /// It would change something.
     Writes(String),
+}
+
+/// Whether a session may change the database. Chosen per connection by the
+/// user; read-only is the default everywhere.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum Access {
+    #[default]
+    ReadOnly,
+    ReadWrite,
+}
+
+/// What a statement does, for a session that may write.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Kind {
+    Read,
+    /// Changes rows.
+    Write,
+    /// Changes structure, users or grants.
+    Schema,
+    /// Loses data that cannot be brought back: DROP, TRUNCATE, DELETE or
+    /// UPDATE without WHERE, dropping a column. The text names what.
+    Dangerous(String),
+}
+
+/// The console's check for either kind of session.
+pub fn check_for(dialect: Dialect, sql: &str, access: Access) -> Result<Kind, Refusal> {
+    match access {
+        Access::ReadOnly => check(dialect, sql).map(|()| Kind::Read),
+        Access::ReadWrite => classify(dialect, sql),
+    }
+}
+
+/// For a writable session: one statement, sorted by what it does. SQL the
+/// parser does not know counts as dangerous, since Atlas cannot tell.
+pub fn classify(dialect: Dialect, sql: &str) -> Result<Kind, Refusal> {
+    if sql.trim().trim_end_matches(';').trim().is_empty() {
+        return Err(Refusal::Empty);
+    }
+    let parsed = match dialect {
+        Dialect::MySql => Parser::parse_sql(&MySqlDialect {}, sql),
+        Dialect::Postgres => Parser::parse_sql(&PostgreSqlDialect {}, sql),
+        Dialect::Sqlite => Parser::parse_sql(&SQLiteDialect {}, sql),
+    };
+    let statements = match parsed {
+        Ok(s) => s,
+        Err(_) => {
+            if fallback(sql).is_ok() {
+                return Ok(Kind::Read);
+            }
+            if sql.trim().trim_end_matches(';').contains(';') {
+                return Err(Refusal::Several);
+            }
+            return Ok(Kind::Dangerous("statement Atlas cannot read".into()));
+        }
+    };
+    let one = match statements.as_slice() {
+        [] => return Err(Refusal::Empty),
+        [one] => one,
+        _ => return Err(Refusal::Several),
+    };
+    if reads(one).is_ok() || (dialect == Dialect::Sqlite && matches!(one, Statement::Pragma { value: None, .. })) {
+        return Ok(Kind::Read);
+    }
+    Ok(match one {
+        Statement::Insert(_) => Kind::Write,
+        Statement::Update(u) if u.selection.is_none() => Kind::Dangerous("UPDATE without WHERE".into()),
+        Statement::Update(_) => Kind::Write,
+        Statement::Delete(d) if d.selection.is_none() => Kind::Dangerous("DELETE without WHERE".into()),
+        Statement::Delete(_) => Kind::Write,
+        Statement::Truncate { .. } => Kind::Dangerous("TRUNCATE".into()),
+        Statement::Drop { .. } => Kind::Dangerous("DROP".into()),
+        Statement::AlterTable(a) if format!("{a:?}").contains("DropColumn") => {
+            Kind::Dangerous("ALTER TABLE … DROP COLUMN".into())
+        }
+        _ => {
+            let name = format!("{one:?}");
+            if name.starts_with("Truncate") || name.starts_with("Drop") {
+                Kind::Dangerous(name.split(['(', ' ', '{']).next().unwrap_or("").to_owned())
+            } else {
+                Kind::Schema
+            }
+        }
+    })
 }
 
 /// Ok when `sql` is a single statement that only reads.
@@ -115,6 +202,23 @@ mod tests {
             assert!(check(Dialect::MySql, sql).is_err(), "{sql}");
         }
         assert!(check(Dialect::Sqlite, "PRAGMA foreign_keys = OFF").is_err());
+    }
+
+    #[test]
+    fn writable_sessions_classify() {
+        let k = |sql| classify(Dialect::MySql, sql);
+        assert_eq!(k("SELECT 1"), Ok(Kind::Read));
+        assert_eq!(k("UPDATE t SET a = 1 WHERE id = 2"), Ok(Kind::Write));
+        assert_eq!(k("INSERT INTO t VALUES (1)"), Ok(Kind::Write));
+        assert!(matches!(k("UPDATE t SET a = 1"), Ok(Kind::Dangerous(_))));
+        assert!(matches!(k("DELETE FROM t"), Ok(Kind::Dangerous(_))));
+        assert!(matches!(k("DROP TABLE t"), Ok(Kind::Dangerous(_))));
+        assert!(matches!(k("TRUNCATE TABLE t"), Ok(Kind::Dangerous(_))));
+        assert!(matches!(k("ALTER TABLE t DROP COLUMN a"), Ok(Kind::Dangerous(_))));
+        assert_eq!(k("ALTER TABLE t ADD COLUMN a int"), Ok(Kind::Schema));
+        assert_eq!(k("CREATE TABLE x (a int)"), Ok(Kind::Schema));
+        assert_eq!(k("DELETE FROM t; DELETE FROM u"), Err(Refusal::Several));
+        assert_eq!(check_for(Dialect::MySql, "DELETE FROM t WHERE a = 1", Access::ReadOnly), Err(Refusal::Writes("Delete".into())));
     }
 
     #[test]
