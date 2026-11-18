@@ -24,35 +24,6 @@ Every claim below says how it is known: *tested* (and how), *built* (it compiles
 
 ---
 
-## Features
-
-- **Live Databases:** **MariaDB** and **MySQL** (information_schema), **PostgreSQL** (pg_catalog, the session's current schema), **SQLite** files. *Tested* by `cargo test` against **MariaDB 10.11** and **PostgreSQL 17** in containers and against an SQLite file: tables, columns, primary and unique keys, foreign keys, row counts, paged and filtered rows.
-- **SQL Dumps:** `mariadb-dump`, `mysqldump`, `pg_dump` (with `COPY` blocks and `ALTER TABLE … ADD CONSTRAINT`), `sqlite3 .dump` or a hand-written `schema.sql`, read without a server. Only `CREATE TABLE` and `ALTER TABLE` are parsed, so a dump's INSERTs cost nothing. *Tested* by unit tests and on the `schema.sql` of a real web shop (10 tables).
-- **Read-Only for Real:** every session is read-only on the server (**MariaDB** `SET SESSION TRANSACTION READ ONLY`, **PostgreSQL** `default_transaction_read_only`, **SQLite** `mode=ro`). The SQL console also refuses anything that is not a single reading statement before it is sent, including `SET SESSION TRANSACTION READ WRITE`. *Tested*: an `UPDATE` fails on all three databases.
-- **Errors in Plain Words:** a failed connection says what is wrong (wrong database name, wrong password, user not allowed from this host, nothing listening, unknown host, timeout, SSH) with the server's own message below. When the database name was the problem, it lists the databases this user may open; one click connects to it. The connection form has the same list beside the database name. *Tested*: the classification by unit tests; the list against MariaDB 10.11, PostgreSQL 17 and a real MariaDB 11.8 (a wrong database name offered the right one); the dialog by screenshot in English and German.
-- **Passwords Never Stored:** asked on every connect, dropped with the connection. Connections are kept without them. *Tested* (unit test on the stored format).
-- **SSH Tunnel:** optional per connection, through the system's `ssh`, so `~/.ssh/config` aliases, `ProxyJump`, the agent and `known_hosts` apply as in a terminal. Unknown host keys are refused. *Built*, not yet tried against a server.
-- **ER Diagram:** cards with **PK/FK** marks and types in **Geist Mono**, **crow's-foot** lines from the foreign key row to the referenced row (one, zero-or-one, zero-or-many from nullability and uniqueness). *Tested* (screenshots, unit tests of the ends).
-- **Inferred Relations:** `kunde_id` → `kunden.id`, `customerId` → `customers`, `parent_category_id` → `categories`, drawn **dashed**, for databases without declared keys. **Ctrl+I** turns them off. *Tested* (unit tests, demo database).
-- **Layout:** parents left of children, crossings reduced by barycentre sweeps, separate parts packed; cards can be dragged and keep their place per database. **Tidy Up** lays everything out again on springs. *Tested* (unit tests; positions restored in a second run).
-- **Zoom and Move:** like Figma. Two fingers or the wheel move, pinch or **Ctrl+wheel** zoom toward the pointer, the middle button drags, a fling carries on and slows down. *Built*: the code paths ran only through actions, not through a real touchpad.
-- **Motion:** springs from **Islands** for unfolding a card (cards below move with it), focus fading the unrelated tables, the camera flying to a table, the data panel growing out of its card, and a cross-fade between light and dark. Nothing ticks at rest. *Tested* by screenshots during and after the motion; the feel at full frame rate is not judged yet.
-- **Navigation:** table list with row counts and a filter, **Ctrl+K** search over tables and columns, arrow keys to the next connected table, a **minimap** that moves the view on click. *Tested* (screenshots).
-- **Data Browser:** 200 rows at a time as you scroll, sort by clicking a header, filters per column (contains, =, ≠, <, >, NULL), foreign key values as links to the referenced row, a detail column that pretty-prints JSON, copy as **CSV** or **SQL INSERT**. *Tested*: paging, filters and counts by `cargo test`, the panel and a filtered table by screenshots.
-- **SQL Console:** **Ctrl+E**, **Ctrl+Enter** runs, the first 1,000 rows, a history per database, SQL highlighting in black and white. *Tested* (screenshot of a real query and its result).
-- **Export:** **PNG** (2x), **SVG** and **PDF** (vectors, through cairo) and **Mermaid** `erDiagram` for READMEs and Obsidian. *Tested*: all four written from the demo database and opened.
-- **Light and Dark:** follows the system, the header button flips it. *Tested* (screenshots).
-- **English and German:** after the system language (or `LANGUAGE`). The translations ship inside the app, not as a separate Flatpak locale extension. *Tested*: 148 of 148 strings, the connection error dialog looked at in German; the other screens not yet.
-
-| Light | Dark |
-| :--- | :--- |
-| ![Rows of a table](readmestuff/shots/data-light.png) | ![The same in dark](readmestuff/shots/data-dark.png) |
-| ![Search over tables and columns](readmestuff/shots/search-light.png) | ![The diagram in dark](readmestuff/shots/diagram-dark.png) |
-| ![The SQL console](readmestuff/shots/console-light.png) | ![A foreign key followed: filtered rows](readmestuff/shots/filter-light.png) |
-| ![A wrong database name, explained, with the right one to pick](readmestuff/shots/failed-light.png) | ![The connection form](readmestuff/shots/connect-light.png) |
-
----
-
 ## Architecture Overview
 
 **Atlas** is two crates. **`atlas-core`** holds everything that is plain data (schema model, inference, layout, springs, SQL building and checking, dump parsing, Mermaid, stored formats, design tokens) and is tested without a display. **`atlas`** is the GTK application.
@@ -85,9 +56,38 @@ More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/RENDERING.md](docs/R
 
 ---
 
-## Platforms
+## Core Capabilities
 
-| System | Desktop | State |
+- **Live Databases:** **MariaDB** and **MySQL** (information_schema), **PostgreSQL** (pg_catalog, the session's current schema), **SQLite** files. *Tested* by `cargo test` against **MariaDB 10.11** and **PostgreSQL 17** in containers and against an SQLite file: tables, columns, primary and unique keys, foreign keys, row counts, paged and filtered rows.
+- **SQL Dumps:** `mariadb-dump`, `mysqldump`, `pg_dump` (with `COPY` blocks and `ALTER TABLE … ADD CONSTRAINT`), `sqlite3 .dump` or a hand-written `schema.sql`, read without a server. Only `CREATE TABLE` and `ALTER TABLE` are parsed, so a dump's INSERTs cost nothing. *Tested* by unit tests and on the `schema.sql` of a real web shop (10 tables).
+- **Read-Only for Real:** every session is read-only on the server (**MariaDB** `SET SESSION TRANSACTION READ ONLY`, **PostgreSQL** `default_transaction_read_only`, **SQLite** `mode=ro`). The SQL console also refuses anything that is not a single reading statement before it is sent, including `SET SESSION TRANSACTION READ WRITE`. *Tested*: an `UPDATE` fails on all three databases.
+- **Errors in Plain Words:** a failed connection says what is wrong (wrong database name, wrong password, user not allowed from this host, nothing listening, unknown host, timeout, SSH) with the server's own message below. When the database name was the problem, it lists the databases this user may open; one click connects to it. The connection form has the same list beside the database name. *Tested*: the classification by unit tests; the list against MariaDB 10.11, PostgreSQL 17 and a real MariaDB 11.8 (a wrong database name offered the right one); the dialog by screenshot in English and German.
+- **Passwords Never Stored:** asked on every connect, dropped with the connection. Connections are kept without them. *Tested* (unit test on the stored format).
+- **SSH Tunnel:** optional per connection, through the system's `ssh`, so `~/.ssh/config` aliases, `ProxyJump`, the agent and `known_hosts` apply as in a terminal. Unknown host keys are refused. *Built*, not yet tried against a server.
+- **ER Diagram:** cards with **PK/FK** marks and types in **Geist Mono**, **crow's-foot** lines from the foreign key row to the referenced row (one, zero-or-one, zero-or-many from nullability and uniqueness). *Tested* (screenshots, unit tests of the ends).
+- **Inferred Relations:** `kunde_id` → `kunden.id`, `customerId` → `customers`, `parent_category_id` → `categories`, drawn **dashed**, for databases without declared keys. **Ctrl+I** turns them off. *Tested* (unit tests, demo database).
+- **Layout:** parents left of children, crossings reduced by barycentre sweeps, separate parts packed; cards can be dragged and keep their place per database. **Tidy Up** lays everything out again on springs. *Tested* (unit tests; positions restored in a second run).
+- **Zoom and Move:** like Figma. Two fingers or the wheel move, pinch or **Ctrl+wheel** zoom toward the pointer, the middle button drags, a fling carries on and slows down. *Built*: the code paths ran only through actions, not through a real touchpad.
+- **Motion:** springs from **Islands** for unfolding a card (cards below move with it), focus fading the unrelated tables, the camera flying to a table, the data panel growing out of its card, and a cross-fade between light and dark. Nothing ticks at rest. *Tested* by screenshots during and after the motion; the feel at full frame rate is not judged yet.
+- **Navigation:** table list with row counts and a filter, **Ctrl+K** search over tables and columns, arrow keys to the next connected table, a **minimap** that moves the view on click. *Tested* (screenshots).
+- **Data Browser:** 200 rows at a time as you scroll, sort by clicking a header, filters per column (contains, =, ≠, <, >, NULL), foreign key values as links to the referenced row, a detail column that pretty-prints JSON, copy as **CSV** or **SQL INSERT**. *Tested*: paging, filters and counts by `cargo test`, the panel and a filtered table by screenshots.
+- **SQL Console:** **Ctrl+E**, **Ctrl+Enter** runs, the first 1,000 rows, a history per database, SQL highlighting in black and white. *Tested* (screenshot of a real query and its result).
+- **Export:** **PNG** (2x), **SVG** and **PDF** (vectors, through cairo) and **Mermaid** `erDiagram` for READMEs and Obsidian. *Tested*: all four written from the demo database and opened.
+- **Light and Dark:** follows the system, the header button flips it. *Tested* (screenshots).
+- **English and German:** after the system language (or `LANGUAGE`). The translations ship inside the app, not as a separate Flatpak locale extension. *Tested*: 148 of 148 strings, the connection error dialog looked at in German; the other screens not yet.
+
+| Light | Dark |
+| :--- | :--- |
+| ![Rows of a table](readmestuff/shots/data-light.png) | ![The same in dark](readmestuff/shots/data-dark.png) |
+| ![Search over tables and columns](readmestuff/shots/search-light.png) | ![The diagram in dark](readmestuff/shots/diagram-dark.png) |
+| ![The SQL console](readmestuff/shots/console-light.png) | ![A foreign key followed: filtered rows](readmestuff/shots/filter-light.png) |
+| ![A wrong database name, explained, with the right one to pick](readmestuff/shots/failed-light.png) | ![The connection form](readmestuff/shots/connect-light.png) |
+
+---
+
+## Platform Support Matrix
+
+| **System** | **Desktop** | **Status** |
 | :--- | :--- | :--- |
 | **Fedora 44** | GNOME 50, Wayland | *tested* (Flatpak installed and driven) |
 | **CachyOS** | any | *planned*: same Flatpak, not run |
@@ -98,9 +98,9 @@ More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/RENDERING.md](docs/R
 
 ---
 
-## Keys
+## Keyboard Shortcuts
 
-| Key | Does |
+| **Linux** | **Action** |
 | :--- | :--- |
 | **Ctrl + K** | Go to a table or column |
 | **Ctrl + E**, **Ctrl + Enter** | SQL console, run |
@@ -120,9 +120,11 @@ More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/RENDERING.md](docs/R
 
 ---
 
-## Data and Paths
+## Data Storage & Disk Paths
 
-| Path | Holds |
+Everything Atlas keeps is a plain file in its Flatpak config folder; delete the folder to start fresh.
+
+| **File / Directory** | **Description** |
 | :--- | :--- |
 | **`~/.var/app/io.github.tomsliikee.Atlas/config/atlas/connections.json`** | Saved connections, never a password |
 | **`…/atlas/recent.json`** | The last 8 files opened |
@@ -132,21 +134,30 @@ More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/RENDERING.md](docs/R
 
 ---
 
-## Build and Install
+## Building and Running
 
+**1. Install the GNOME 51 SDK and the Rust extension** (Flathub must be set up as a remote):
 ```bash
 flatpak install --user flathub org.gnome.Sdk//51 org.gnome.Platform//51 org.freedesktop.Sdk.Extension.rust-stable//26.08
 ```
 
+**2. Clone the repository:**
+```bash
+git clone https://github.com/tomsliikee/atlas.git
+cd atlas
+```
+
+**3. Build and install the Flatpak:**
 ```bash
 flatpak-builder --user --install --force-clean build-dir build-aux/io.github.tomsliikee.Atlas.json
 ```
 
+**4. Run:**
 ```bash
 flatpak run io.github.tomsliikee.Atlas
 ```
 
-Tests, the screenshot mode and the database containers are in [docs/BUILD.md](docs/BUILD.md).
+The GTK code builds only inside the SDK. `cargo test` for **`atlas-core`** runs on the host. Tests, the screenshot mode and the database containers are in [docs/BUILD.md](docs/BUILD.md).
 
 ---
 
@@ -161,4 +172,4 @@ Tests, the screenshot mode and the database containers are in [docs/BUILD.md](do
 
 ## License
 
-**MIT**. **Inter**, **Geist Serif** and **Geist Mono** are under the **SIL Open Font License 1.1** (`insights-mono/fonts/`).
+Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for complete terms. **Inter**, **Geist Serif** and **Geist Mono** are under the **SIL Open Font License 1.1** (`insights-mono/fonts/`).
